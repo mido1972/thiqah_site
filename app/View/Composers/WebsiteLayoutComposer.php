@@ -2,6 +2,7 @@
 
 namespace App\View\Composers;
 
+use App\Models\Menu;
 use App\Models\Page;
 use App\Support\Settings;
 use Illuminate\Support\Facades\Schema;
@@ -11,142 +12,173 @@ class WebsiteLayoutComposer
 {
     public function compose(View $view): void
     {
-        // Row settings as array (from Settings helper)
+        /* =========================================================
+         |  Settings + Language
+         ========================================================= */
+
         $row = Settings::all();
 
-        // Language: ?lang=ar|en (default ar)
         $appLocale = strtolower((string) request()->query('lang', 'ar'));
         $appLocale = $appLocale === 'en' ? 'en' : 'ar';
 
-        // ---- Normalize settings keys (map DB columns -> unified keys) ----
         $companyNameAr = $row['company_name_ar'] ?? $row['company_name'] ?? 'ثقة';
-        $companyNameEn = $row['company_name_en'] ?? $row['company_name_en'] ?? 'Thiqah';
+        $companyNameEn = $row['company_name_en'] ?? 'Thiqah';
 
         $companyAddress = $row['address'] ?? $row['company_address'] ?? null;
         $companyPhone   = $row['phone'] ?? $row['company_phone'] ?? null;
         $companyEmail   = $row['email'] ?? $row['company_email'] ?? null;
 
-        // logo path in DB might be: logo, logo_path, company_logo
         $logo = $row['company_logo'] ?? $row['logo'] ?? $row['logo_path'] ?? null;
 
-        // Social columns might be named directly
-        $facebook  = $row['facebook'] ?? null;
-        $linkedin  = $row['linkedin'] ?? null;
-        $instagram = $row['instagram'] ?? null;
-        $twitter   = $row['twitter'] ?? $row['x'] ?? null;
-        $youtube   = $row['youtube'] ?? null;
-        $tiktok    = $row['tiktok'] ?? null;
-        $whatsapp  = $row['whatsapp'] ?? null;
+        /* =========================================================
+         |  Social
+         ========================================================= */
 
-        // SEO defaults (optional columns)
-        $metaTitleAr = $row['meta_title_ar'] ?? null;
-        $metaTitleEn = $row['meta_title_en'] ?? null;
-
-        $metaDescAr  = $row['meta_description_ar'] ?? null;
-        $metaDescEn  = $row['meta_description_en'] ?? null;
-
-        $metaKeysAr  = $row['meta_keywords_ar'] ?? null;
-        $metaKeysEn  = $row['meta_keywords_en'] ?? null;
-
-        $baseTitle = $appLocale === 'en' ? $companyNameEn : $companyNameAr;
-
-        $defaultMetaTitle = $appLocale === 'en'
-            ? ($metaTitleEn ?? $companyNameEn)
-            : ($metaTitleAr ?? $companyNameAr);
-
-        $defaultMetaDesc = $appLocale === 'en'
-            ? ($metaDescEn ?? '')
-            : ($metaDescAr ?? '');
-
-        $defaultMetaKeys = $appLocale === 'en'
-            ? ($metaKeysEn ?? '')
-            : ($metaKeysAr ?? '');
-
-        // ---- Pages for header/footer (safe fallbacks) ----
-        $headerPages = collect();
-        $footerPages = collect();
-
-        try {
-            // If scopes exist (recommended)
-            if (method_exists(Page::class, 'scopeHeader')) {
-                $headerPages = Page::query()->header()->get();
-            } else {
-                $q = Page::query();
-                // fallback if columns exist
-                if (Schema::hasColumn((new Page)->getTable(), 'show_in_header')) {
-                    $q->where('show_in_header', 1);
-                }
-                $headerPages = $q->orderBy('sort_order')->get();
-            }
-
-            if (method_exists(Page::class, 'scopeFooter')) {
-                $footerPages = Page::query()->footer()->get();
-            } else {
-                $q = Page::query();
-                if (Schema::hasColumn((new Page)->getTable(), 'show_in_footer')) {
-                    $q->where('show_in_footer', 1);
-                }
-                $footerPages = $q->orderBy('sort_order')->get();
-            }
-        } catch (\Throwable $e) {
-            // Keep empty to avoid breaking frontend if schema differs
-            $headerPages = collect();
-            $footerPages = collect();
-        }
-
-        // Language switch URLs (preserve other query params)
-        $baseQuery     = request()->query();
-        $switchToArUrl = request()->url() . '?' . http_build_query(array_merge($baseQuery, ['lang' => 'ar']));
-        $switchToEnUrl = request()->url() . '?' . http_build_query(array_merge($baseQuery, ['lang' => 'en']));
-
-        // Social normalized array
         $socialLinks = [
-            'facebook'  => $facebook,
-            'linkedin'  => $linkedin,
-            'instagram' => $instagram,
-            'twitter'   => $twitter,
-            'youtube'   => $youtube,
-            'tiktok'    => $tiktok,
-            'whatsapp'  => $whatsapp,
+            'facebook'  => $row['facebook']  ?? null,
+            'linkedin'  => $row['linkedin']  ?? null,
+            'instagram' => $row['instagram'] ?? null,
+            'twitter'   => $row['twitter']   ?? $row['x'] ?? null,
+            'youtube'   => $row['youtube']   ?? null,
+            'tiktok'    => $row['tiktok']    ?? null,
+            'whatsapp'  => $row['whatsapp']  ?? null,
         ];
 
         $hasSocial = collect($socialLinks)->filter()->isNotEmpty();
 
-        // Provide unified keys expected by views
-        $siteSettings = array_merge($row, [
-            'company_name'    => $companyNameAr,
-            'company_name_en' => $companyNameEn,
-            'company_address' => $companyAddress,
-            'company_phone'   => $companyPhone,
-            'company_email'   => $companyEmail,
-            'company_logo'    => $logo,
+        /* =========================================================
+         |  SEO Defaults
+         ========================================================= */
 
-            'facebook'  => $facebook,
-            'linkedin'  => $linkedin,
-            'instagram' => $instagram,
-            'twitter'   => $twitter,
-            'youtube'   => $youtube,
-            'tiktok'    => $tiktok,
-            'whatsapp'  => $whatsapp,
-        ]);
+        $defaultMetaTitle = $appLocale === 'en'
+            ? ($row['meta_title_en'] ?? $companyNameEn)
+            : ($row['meta_title_ar'] ?? $companyNameAr);
+
+        $defaultMetaDesc = $appLocale === 'en'
+            ? ($row['meta_description_en'] ?? '')
+            : ($row['meta_description_ar'] ?? '');
+
+        $defaultMetaKeys = $appLocale === 'en'
+            ? ($row['meta_keywords_en'] ?? '')
+            : ($row['meta_keywords_ar'] ?? '');
+
+        /* =========================================================
+         |  Pages (Header / Footer) – keep as is
+         ========================================================= */
+
+        $headerPages = collect();
+        $footerPages = collect();
+
+        try {
+            if (method_exists(Page::class, 'scopeHeader')) {
+                $headerPages = Page::query()->header()->get();
+            } elseif (Schema::hasColumn((new Page)->getTable(), 'show_in_header')) {
+                $headerPages = Page::query()
+                    ->where('show_in_header', 1)
+                    ->orderBy('sort_order')
+                    ->get();
+            }
+
+            if (method_exists(Page::class, 'scopeFooter')) {
+                $footerPages = Page::query()->footer()->get();
+            } elseif (Schema::hasColumn((new Page)->getTable(), 'show_in_footer')) {
+                $footerPages = Page::query()
+                    ->where('show_in_footer', 1)
+                    ->orderBy('sort_order')
+                    ->get();
+            }
+        } catch (\Throwable $e) {
+            $headerPages = collect();
+            $footerPages = collect();
+        }
+
+        /* =========================================================
+         |  ✅ Header Menu (FINAL - based on your Menu model: items())
+         |  menus.location = 'header'
+         |  menu_items.order for ordering
+         ========================================================= */
+
+        $headerMenuTree = collect();
+
+        try {
+            $menu = Menu::query()
+                ->where('location', 'header')
+                ->where('is_active', 1)
+                ->orderBy('sort_order')
+                ->orderBy('order')
+                ->first();
+
+            if ($menu) {
+                // ✅ Use confirmed relation: items()
+                $items = $menu->items()
+                    ->where('is_active', 1)
+                    ->orderBy('order')
+                    ->get();
+
+                $parents  = $items->whereNull('parent_id')->values();
+                $children = $items->whereNotNull('parent_id')->groupBy('parent_id');
+
+                $headerMenuTree = $parents->map(function ($parent) use ($children) {
+                    $parent->children = ($children[$parent->id] ?? collect())->values();
+                    return $parent;
+                });
+            }
+        } catch (\Throwable $e) {
+            $headerMenuTree = collect();
+        }
+
+        /* =========================================================
+         |  Language Switch
+         ========================================================= */
+
+        $baseQuery     = request()->query();
+        $switchToArUrl = request()->url() . '?' . http_build_query(array_merge($baseQuery, ['lang' => 'ar']));
+        $switchToEnUrl = request()->url() . '?' . http_build_query(array_merge($baseQuery, ['lang' => 'en']));
+
+        /* =========================================================
+         |  Share With Views
+         ========================================================= */
 
         $view->with([
-            'siteSettings'       => $siteSettings,
-            'appLocale'          => $appLocale,
-            'baseTitle'          => $baseTitle,
+            // Settings
+            'siteSettings'     => $row,
+            'appLocale'        => $appLocale,
 
-            'defaultMetaTitle'   => $defaultMetaTitle,
-            'defaultMetaDesc'    => $defaultMetaDesc,
-            'defaultMetaKeys'    => $defaultMetaKeys,
+            // Company
+            'companyNameAr'    => $companyNameAr,
+            'companyNameEn'    => $companyNameEn,
+            'companyPhone'     => $companyPhone,
+            'companyEmail'     => $companyEmail,
+            'companyLogo'      => $logo,
+            'companyAddress'   => $companyAddress,
 
-            'headerPages'        => $headerPages,
-            'footerPages'        => $footerPages,
+            // SEO
+            'defaultMetaTitle' => $defaultMetaTitle,
+            'defaultMetaDesc'  => $defaultMetaDesc,
+            'defaultMetaKeys'  => $defaultMetaKeys,
 
-            'switchToArUrl'      => $switchToArUrl,
-            'switchToEnUrl'      => $switchToEnUrl,
+            // Pages
+            'headerPages'      => $headerPages,
+            'footerPages'      => $footerPages,
 
-            'socialLinks'        => $socialLinks,
-            'hasSocial'          => $hasSocial,
+            // Header Menu
+            'headerMenuTree'   => $headerMenuTree,
+
+            // TopBar
+            'topPhone'         => $companyPhone,
+            'topEmail'         => $companyEmail,
+
+            // CTA
+            'ctaLabel'         => $appLocale === 'en' ? 'Get a Quote' : 'اطلب عرض سعر',
+            'ctaUrl'           => url('/contact'),
+
+            // Social
+            'socialLinks'      => $socialLinks,
+            'hasSocial'        => $hasSocial,
+
+            // Language switch
+            'switchToArUrl'    => $switchToArUrl,
+            'switchToEnUrl'    => $switchToEnUrl,
         ]);
     }
 }

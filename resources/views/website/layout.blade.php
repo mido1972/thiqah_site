@@ -1,5 +1,8 @@
 @php
     // ✅ 0) Normalize site settings source (Model or array)
+    // Priority:
+    // 1) $siteSettings from WebsiteLayoutComposer
+    // 2) $settings legacy variable if exists
     if (!isset($siteSettings) || empty($siteSettings)) {
         if (isset($settings) && $settings) {
             $siteSettings = is_array($settings) ? $settings : $settings->toArray();
@@ -9,9 +12,9 @@
     }
 
     // ===== Locale =====
-    $appLocale = $locale ?? request()->query('lang', 'ar');
+    $appLocale = $appLocale ?? ($locale ?? request()->query('lang', 'ar'));
     $appLocale = strtolower((string) $appLocale) === 'en' ? 'en' : 'ar';
-    $isRtl = $appLocale === 'ar';
+    $isRtl = ($isRtl ?? ($appLocale === 'ar'));
 
     // Safe settings getter from array
     $ss = fn ($key, $default = null) => data_get($siteSettings, $key, $default);
@@ -72,23 +75,15 @@
 
 <body class="min-h-screen bg-slate-50 text-slate-900">
 
-@include('website.partials.header', [
-    'siteSettings' => $siteSettings,
-    'appLocale' => $appLocale,
-    'isRtl' => $isRtl,
-    'switchToArUrl' => $switchToArUrl,
-    'switchToEnUrl' => $switchToEnUrl,
-])
+{{-- ✅ Header comes from website.partials.header and gets its data from WebsiteLayoutComposer --}}
+@include('website.partials.header')
 
 <main>
     @yield('content')
 </main>
 
-@include('website.partials.footer', [
-    'siteSettings' => $siteSettings,
-    'appLocale' => $appLocale,
-    'isRtl' => $isRtl,
-])
+{{-- ✅ Footer comes from website.partials.footer and gets its data from WebsiteLayoutComposer --}}
+@include('website.partials.footer')
 
 </body>
 </html>

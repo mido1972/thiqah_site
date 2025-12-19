@@ -27,5 +27,10 @@ class AppServiceProvider extends ServiceProvider
 
         // ✅ Provide website views with (menus/seo/lang/social) so child views can use variables too
         View::composer('website.*', WebsiteLayoutComposer::class);
+
+        /**
+         * ✅ Header will be built inside WebsiteLayoutComposer
+         * (we keep AppServiceProvider clean and we don't add DB queries here)
+         */
     }
 }
