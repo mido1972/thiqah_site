@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+/* ===== Base ===== */
+html { scroll-behavior: smooth; }
+
+body{
+  @apply antialiased;
+}
+
+/* ===== Container ===== */
+.container-site{
+  @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+/* ===== Typography ===== */
+.h1{
+  @apply text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight;
+}
+.h2{
+  @apply text-2xl sm:text-3xl font-extrabold tracking-tight;
+}
+.h3{
+  @apply text-xl sm:text-2xl font-extrabold;
+}
+.p{
+  @apply text-sm sm:text-base leading-7 text-slate-600;
+}
+.muted{
+  @apply text-xs sm:text-sm text-slate-500;
+}
+
+/* ===== Sections ===== */
+.section{
+  @apply py-12 sm:py-16;
+}
+.section-dark{
+  @apply bg-slate-950 text-white;
+}
+.section-dark .p,
+.section-dark .muted{
+  @apply text-slate-200/80;
+}
+
+/* ===== Cards ===== */
+.card{
+  @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+}
+.card-pad{
+  @apply p-6 sm:p-8;
+}
+
+/* ===== Buttons (Tailwind v4 safe) ===== */
+.btn-primary{
+  @apply inline-flex items-center justify-center rounded-xl font-extrabold transition;
+  @apply h-10 px-4 text-sm;
+  @apply bg-slate-900 text-white hover:bg-slate-800;
+}
+
+.btn-secondary{
+  @apply inline-flex items-center justify-center rounded-xl font-extrabold transition;
+  @apply h-10 px-4 text-sm;
+  @apply border border-slate-200 bg-white text-slate-900 hover:bg-slate-100;
+}
+
+.btn-link{
+  @apply text-sm font-extrabold text-orange-600 hover:text-orange-700;
+}
+
+/* ===== Footer Compact ===== */
+.footer-compact{
+  @apply py-7;
+}
+.footer-compact .footer-grid{
+  @apply gap-6;
+}
+.footer-compact .footer-social{
+  @apply mt-4;
+}
+.footer-compact .footer-bottom{
+  @apply mt-4 pt-3;
+}
