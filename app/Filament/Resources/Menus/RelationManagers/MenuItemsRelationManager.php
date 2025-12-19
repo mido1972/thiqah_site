@@ -38,10 +38,12 @@ class MenuItemsRelationManager extends RelationManager
                         ->required()
                         // ✅ منع تكرار العنوان داخل نفس القائمة + نفس الأب
                         ->rules([
-                            fn ($record) => Rule::unique('menu_items', 'title_ar')
-                                ->where('menu_id', $this->getOwnerRecord()->id)
-                                ->where('parent_id', request()->input('parent_id')) // fallback
-                                ->ignore($record?->id),
+                            function ($record, SchemaGet $get) {
+                                return Rule::unique('menu_items', 'title_ar')
+                                    ->where('menu_id', $this->getOwnerRecord()->id)
+                                    ->where('parent_id', $get('parent_id'))
+                                    ->ignore($record?->id);
+                            },
                         ]),
 
                     TextInput::make('title_en')
@@ -53,11 +55,13 @@ class MenuItemsRelationManager extends RelationManager
                         ->searchable()
                         ->preload()
                         ->nullable()
-                        // ✅ نجيب الآباء من نفس القائمة فقط + نستبعد السجل الحالي
+                        // ✅ الآباء من نفس القائمة فقط + استبعاد السجل الحالي
                         ->options(function ($record) {
                             return MenuItem::query()
                                 ->where('menu_id', $this->getOwnerRecord()->id)
                                 ->when($record?->id, fn ($q) => $q->where('id', '!=', $record->id))
+                                ->whereNull('parent_id') // ✅ نخلي الأب “Parent فقط” (مهم للفوتر أعمدة)
+                                ->orderBy('order')
                                 ->orderBy('title_ar')
                                 ->pluck('title_ar', 'id')
                                 ->toArray();
@@ -110,19 +114,29 @@ class MenuItemsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) =>
-                $query
-                    // ✅ ترتيب: Parent ثم Child حسب order
+            ->modifyQueryUsing(function ($query) {
+                // ✅ نجيب parent مع children لتقليل الاستعلامات
+                $query->with('parent');
+
+                // ✅ ترتيب: Parents ثم Children تحت كل Parent
+                // - Parent أولاً (parent_id NULL)
+                // - ثم group by parent_id
+                // - ثم order
+                return $query
                     ->orderByRaw('CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END')
-                    ->orderBy('parent_id')
+                    ->orderByRaw('COALESCE(parent_id, id)') // parent group
                     ->orderBy('order')
-            )
+                    ->orderBy('id');
+            })
             ->columns([
+                // ✅ عنوان مُنسق: الطفل يظهر كأنه تحت الأب
                 Tables\Columns\TextColumn::make('title_ar')
                     ->label('العنوان')
-                    ->searchable(),
+                    ->searchable()
+                    ->formatStateUsing(function ($state, MenuItem $record) {
+                        return $record->parent_id ? '— ' . $state : $state;
+                    }),
 
-                // ✅ عمود الأب: هتشوف “أهدافنا” تحت مين
                 Tables\Columns\TextColumn::make('parent.title_ar')
                     ->label('الأب')
                     ->placeholder('—')

@@ -1,6 +1,8 @@
 @php
     use Illuminate\Support\Str;
+    use App\Models\Menu;
 
+    /* ================= Settings Helpers ================= */
     $ss = fn ($key, $default = null) => data_get($siteSettings ?? [], $key, $default);
 
     $appLocale = $appLocale ?? request()->query('lang', 'ar');
@@ -10,10 +12,23 @@
         ? ($ss('company_name_en', 'THIQA'))
         : ($ss('company_name', 'THIQA'));
 
-    $aboutShort = (string) ($ss('about_short') ?? '');
+    $aboutShort = trim((string) ($appLocale === 'en' ? ($ss('about_short_en') ?? '') : ($ss('about_short') ?? '')));
+
     $phone    = (string) ($ss('phone') ?? '');
     $whatsapp = (string) ($ss('whatsapp') ?? '');
     $email    = (string) ($ss('email') ?? '');
+    $address  = trim((string) ($appLocale === 'en' ? ($ss('address_en') ?? '') : ($ss('address') ?? '')));
+
+    // Background image (اختياري)
+    $footerBg = (string) ($ss('footer_bg_path') ?? '');
+    $footerBgUrl = null;
+    if ($footerBg !== '') {
+        $footerBgUrl = str_starts_with($footerBg, 'http')
+            ? $footerBg
+            : asset('storage/' . ltrim(preg_replace('#^storage/#', '', $footerBg), '/'));
+    }
+
+    $year = date('Y');
 
     $social = [
         'facebook'  => $ss('facebook'),
@@ -24,14 +39,8 @@
         'tiktok'    => $ss('tiktok'),
     ];
 
-    $waLink = '';
-    $waDigits = '';
-    if ($whatsapp) {
-        $waDigits = preg_replace('/\D+/', '', $whatsapp);
-        $waLink = $waDigits ? 'https://wa.me/' . $waDigits : '';
-    }
-
-    $year = date('Y');
+    $waDigits = $whatsapp ? preg_replace('/\D+/', '', $whatsapp) : '';
+    $waLink = $waDigits ? 'https://wa.me/' . $waDigits : '';
 
     $icons = [
         'facebook' => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.07C22 6.51 17.52 2 12 2S2 6.51 2 12.07c0 5.02 3.66 9.18 8.44 9.93v-7.02H7.9v-2.91h2.54V9.85c0-2.52 1.49-3.91 3.78-3.91 1.1 0 2.25.2 2.25.2v2.48h-1.27c-1.25 0-1.64.78-1.64 1.58v1.9h2.79l-.45 2.91h-2.34V22c4.78-.75 8.44-4.91 8.44-9.93Z"/></svg>',
@@ -43,164 +52,177 @@
         'whatsapp' => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2a9.86 9.86 0 0 0-9.9 9.8c0 1.73.47 3.41 1.36 4.88L2 22l5.47-1.43a9.93 9.93 0 0 0 4.57 1.12h.01a9.86 9.86 0 0 0 9.9-9.8A9.86 9.86 0 0 0 12.04 2Zm5.78 14.18c-.24.67-1.2 1.24-1.66 1.3-.43.06-.98.08-1.58-.1-.37-.12-.85-.28-1.47-.55-2.59-1.12-4.28-3.73-4.41-3.9-.13-.18-1.05-1.39-1.05-2.65 0-1.26.66-1.88.9-2.14.24-.26.53-.33.7-.33.18 0 .35 0 .5.01.16.01.37-.06.58.44.24.58.8 2 .87 2.14.07.14.11.3.02.48-.09.18-.13.3-.26.46-.13.16-.28.35-.4.47-.13.13-.26.28-.11.54.15.26.67 1.1 1.44 1.78.99.88 1.82 1.16 2.08 1.29.26.13.41.11.56-.07.15-.18.64-.75.81-1.01.17-.26.34-.22.58-.13.24.09 1.53.72 1.79.85.26.13.43.2.5.31.07.11.07.65-.17 1.32Z"/></svg>',
     ];
 
-    $brandLine = $appLocale === 'en'
-        ? 'ERP, HR & Contracting Solutions'
-        : 'حلول ERP و HR وإدارة العقود';
-
-    $logoRaw = (string) ($ss('logo_path') ?? '');
-    $logoUrl = null;
-    if ($logoRaw !== '') {
-        if (str_starts_with($logoRaw, 'http://') || str_starts_with($logoRaw, 'https://')) {
-            $logoUrl = $logoRaw;
-        } else {
-            $logoRaw = ltrim($logoRaw, '/');
-            $logoRaw = preg_replace('#^storage/#', '', $logoRaw);
-            $logoUrl = asset('storage/' . $logoRaw);
-        }
-    }
-
-    // ✅ filter only valid social links (avoid empty icons)
     $socialLinks = [];
-    foreach ($social as $key => $url) {
-        if (!empty($url) && isset($icons[$key])) {
-            $socialLinks[$key] = $url;
-        }
+    foreach ($social as $k => $u) {
+        if (!empty($u) && isset($icons[$k])) $socialLinks[$k] = $u;
     }
+    if ($waLink) $socialLinks = ['whatsapp' => $waLink] + $socialLinks;
+
+    /* ================= Load Footer Menu ================= */
+    $footerMenu = Menu::query()
+        ->where('code', 'footer')
+        ->where('is_active', 1)
+        ->with([
+            'items' => fn ($q) => $q->whereNull('parent_id')->where('is_active', 1)->orderBy('order'),
+            'items.page',
+            'items.children' => fn ($q) => $q->where('is_active', 1)->orderBy('order'),
+            'items.children.page',
+        ])
+        ->first();
+
+    $columns = $footerMenu?->items ?? collect();
+
+    $itemTitle = fn ($item) => $appLocale === 'en'
+        ? ($item->title_en ?: $item->title_ar)
+        : ($item->title_ar ?: $item->title_en);
+
+    $normalizeInternalUrl = function (string $u) {
+        $u = trim($u);
+        if ($u === '') return '#';
+        if (str_starts_with($u, 'http://') || str_starts_with($u, 'https://')) return $u;
+        if (str_starts_with($u, '#') || str_starts_with($u, 'mailto:') || str_starts_with($u, 'tel:')) return $u;
+        return url($u);
+    };
+
+    $itemUrl = function ($item) use ($normalizeInternalUrl) {
+        $type = (string) ($item->type ?? '');
+
+        if ($type === 'page' || !empty($item->page_id)) {
+            if (!empty($item->page)) {
+                $p = $item->page;
+                $base = null;
+
+                if (!empty($p->url))        $base = (string) $p->url;
+                elseif (!empty($p->path))   $base = (string) $p->path;
+                elseif (!empty($p->slug))   $base = '/' . ltrim((string) $p->slug, '/');
+
+                if ($base) {
+                    $base = $normalizeInternalUrl($base);
+                    $u = trim((string) ($item->url ?? ''));
+
+                    if ($u !== '' && str_starts_with($u, '#')) return $base . $u;
+                    if ($u !== '' && !str_starts_with($u, '#')) return $normalizeInternalUrl($u);
+
+                    return $base;
+                }
+            }
+            return '#';
+        }
+
+        if ($type === 'url') {
+            return !empty($item->url) ? $normalizeInternalUrl((string) $item->url) : '#';
+        }
+
+        return !empty($item->url) ? $normalizeInternalUrl((string) $item->url) : '#';
+    };
 @endphp
 
-<footer class="mt-10 border-t border-slate-200 bg-white">
-    {{-- ✅ قللنا padding العام أكثر --}}
-    <div class="container-site py-5">
-
-        {{-- ✅ قللنا gap والمسافات + منع أي stretch يسبب فراغ --}}
-        <div class="grid gap-5 md:grid-cols-12 items-start">
-
-            {{-- Brand --}}
-            <div class="md:col-span-5">
-                <div class="flex items-start gap-3">
-                    <div class="shrink-0">
-                        @if(!empty($logoUrl))
-                            <img
-                                src="{{ $logoUrl }}"
-                                alt="{{ $companyName }}"
-                                class="h-11 w-11 rounded-2xl object-contain border border-slate-200 bg-white p-1"
-                                loading="lazy"
-                            />
-                        @else
-                            <div class="h-11 w-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black">
-                                {{ strtoupper(mb_substr($companyName, 0, 1)) }}
-                            </div>
-                        @endif
-                    </div>
-
-                    <div class="min-w-0">
-                        <div class="text-[15px] font-black text-slate-900 leading-tight">
-                            {{ $companyName }}
-                        </div>
-                        <div class="text-[12px] text-slate-500 mt-1">
-                            {{ $brandLine }}
-                        </div>
-
-                        <p class="text-[13px] leading-6 text-slate-600 mt-2">
-                            {{ $aboutShort ?: ($appLocale==='en'
-                                ? 'We build scalable business systems with a clean modern UI.'
-                                : 'نطوّر أنظمة أعمال قابلة للتوسع بواجهة حديثة ونظيفة.') }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Links --}}
-            <div class="md:col-span-7">
-                <div class="grid gap-5 sm:grid-cols-3">
-
-                    <div>
-                        <div class="text-sm font-extrabold text-slate-900">
-                            {{ $appLocale==='en' ? 'Company' : 'الشركة' }}
-                        </div>
-                        <ul class="mt-2 space-y-1.5 text-[13px]">
-                            <li><a class="text-slate-600 hover:text-slate-900" href="{{ url('/about') }}">{{ $appLocale==='en' ? 'About us' : 'من نحن' }}</a></li>
-                            <li><a class="text-slate-600 hover:text-slate-900" href="{{ url('/contact') }}">{{ $appLocale==='en' ? 'Contact' : 'تواصل' }}</a></li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <div class="text-sm font-extrabold text-slate-900">
-                            {{ $appLocale==='en' ? 'Services' : 'الخدمات' }}
-                        </div>
-                        <ul class="mt-2 space-y-1.5 text-[13px]">
-                            <li><a class="text-slate-600 hover:text-slate-900" href="{{ url('/services') }}">{{ $appLocale==='en' ? 'All services' : 'كل الخدمات' }}</a></li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <div class="text-sm font-extrabold text-slate-900">
-                            {{ $appLocale==='en' ? 'Contact' : 'التواصل' }}
-                        </div>
-
-                        <ul class="mt-2 space-y-2 text-[13px] text-slate-600">
-                            @if($phone)
-                                <li>
-                                    <span class="font-extrabold">{{ $appLocale==='en' ? 'Phone' : 'الهاتف' }}:</span>
-                                    <span class="ms-1">{{ $phone }}</span>
-                                </li>
-                            @endif
-
-                            @if($whatsapp)
-                                <li class="flex items-center gap-2">
-                                    <a href="{{ $waLink ?: '#' }}" target="_blank" rel="noopener"
-                                       class="h-8 w-8 rounded-xl border border-slate-200 text-slate-600 hover:text-green-600 hover:border-green-300 hover:bg-green-50 transition flex items-center justify-center"
-                                       aria-label="WhatsApp">
-                                        <span class="h-4 w-4">{!! $icons['whatsapp'] !!}</span>
-                                    </a>
-
-                                    <div class="min-w-0">
-                                        <span class="font-extrabold">WhatsApp:</span>
-                                        @if($waLink)
-                                            <a href="{{ $waLink }}" target="_blank" rel="noopener" class="ms-1 text-slate-700 hover:text-slate-900">
-                                                {{ $whatsapp }}
-                                            </a>
-                                        @else
-                                            <span class="ms-1">{{ $whatsapp }}</span>
-                                        @endif
-                                    </div>
-                                </li>
-                            @endif
-
-                            @if($email)
-                                <li class="break-words">
-                                    <span class="font-extrabold">{{ $appLocale==='en' ? 'Email' : 'البريد' }}:</span>
-                                    <span class="ms-1">{{ $email }}</span>
-                                </li>
-                            @endif
-                        </ul>
-                    </div>
-
-                </div>
-            </div>
-
-        </div>
-
-        {{-- ✅ السوشيال آخر حاجة ووسط + مسافة صغيرة جدًا --}}
-        @if(count($socialLinks))
-            <div class="mt-3 flex justify-center">
-                <div class="flex flex-wrap justify-center gap-2">
-                    @foreach($socialLinks as $key => $url)
-                        <a href="{{ $url }}" target="_blank" rel="noopener"
-                           class="h-9 w-9 rounded-xl border border-slate-200 text-slate-600 hover:text-orange-600 hover:border-orange-300 hover:bg-orange-50 transition flex items-center justify-center"
-                           aria-label="{{ ucfirst($key) }}">
-                            <span class="h-4 w-4">{!! $icons[$key] !!}</span>
-                        </a>
-                    @endforeach
-                </div>
-            </div>
+<footer class="relative mt-12 text-white overflow-hidden">
+    {{-- Background --}}
+    <div class="absolute inset-0">
+        @if($footerBgUrl)
+            <img src="{{ $footerBgUrl }}" alt="Footer background" class="h-full w-full object-cover opacity-25" />
         @endif
+        <div class="absolute inset-0 bg-slate-950/90"></div>
+    </div>
 
-        {{-- ✅ Bottom أقرب + خط أخف --}}
-        <div class="mt-3 border-t border-slate-200 pt-2.5 flex flex-col md:flex-row gap-1 md:justify-between text-[11px] text-slate-500">
-            <div>© {{ $year }} {{ $companyName }} — {{ $appLocale==='en' ? 'All rights reserved.' : 'جميع الحقوق محفوظة.' }}</div>
-            <div>{{ $appLocale==='en' ? 'Built with Laravel + Filament.' : 'مبني باستخدام Laravel + Filament.' }}</div>
+    <div class="relative container-site py-12">
+        <div class="grid gap-10 lg:grid-cols-12 items-start">
+
+            {{-- Contact --}}
+            <div class="lg:col-span-4">
+                <div class="text-lg font-black tracking-tight">{{ $companyName }}</div>
+
+                @if($aboutShort)
+                    <p class="mt-3 text-sm leading-7 text-slate-200/85">
+                        {{ Str::limit($aboutShort, 240) }}
+                    </p>
+                @endif
+
+                <div class="mt-6 space-y-3 text-sm text-slate-200/85">
+                    @if($address)
+                        <div class="flex gap-2">
+                            <span class="text-slate-200/60">•</span>
+                            <span>{{ $address }}</span>
+                        </div>
+                    @endif
+
+                    @if($phone)
+                        <div class="flex gap-2">
+                            <span class="text-slate-200/60">•</span>
+                            <a href="tel:{{ preg_replace('/\s+/', '', $phone) }}" class="hover:text-white transition">{{ $phone }}</a>
+                        </div>
+                    @endif
+
+                    @if($email)
+                        <div class="flex gap-2">
+                            <span class="text-slate-200/60">•</span>
+                            <a href="mailto:{{ $email }}" class="hover:text-white transition break-all">{{ $email }}</a>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Social centered like screenshot --}}
+                @if(count($socialLinks))
+                    <div class="mt-6 flex justify-center lg:justify-start">
+                        <div class="flex flex-wrap gap-2">
+                            @foreach($socialLinks as $key => $url)
+                                <a href="{{ $url }}" target="_blank" rel="noopener"
+                                   class="h-10 w-10 rounded-full bg-white/10 border border-white/10
+                                          hover:bg-white/15 hover:border-white/20 transition
+                                          flex items-center justify-center"
+                                   aria-label="{{ ucfirst($key) }}">
+                                    <span class="h-5 w-5 text-white">{!! $icons[$key] !!}</span>
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            </div>
+
+            {{-- Footer Menu Columns --}}
+            <div class="lg:col-span-8">
+                <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
+                    @forelse($columns as $col)
+                        @php $links = $col->children ?? collect(); @endphp
+
+                        <div>
+                            <div class="text-base font-extrabold">
+                                {{ $itemTitle($col) }}
+                            </div>
+                            <div class="mt-3 h-px w-full bg-white/10"></div>
+
+                            @if($links->count())
+                                <ul class="mt-4 text-sm text-slate-200/85">
+                                    @foreach($links as $link)
+                                        <li class="py-3 {{ !$loop->last ? 'border-b border-white/10' : '' }}">
+                                            <a href="{{ $itemUrl($link) }}" class="hover:text-white transition">
+                                                {{ $itemTitle($link) }}
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <p class="mt-4 text-sm text-slate-200/70">
+                                    {{ $appLocale==='en' ? 'Add links under this section from the dashboard.' : 'أضف روابط داخل هذا القسم من لوحة التحكم.' }}
+                                </p>
+                            @endif
+                        </div>
+                    @empty
+                        <div class="sm:col-span-2 lg:col-span-3 text-slate-200/80 text-sm">
+                            {{ $appLocale==='en'
+                                ? 'Create a menu with code "footer" and add parent items (sections) and children (links).'
+                                : 'أنشئ قائمة (Menu) بكود "footer" وأضف عناصر رئيسية (أقسام) وتحتها عناصر فرعية (روابط).' }}
+                        </div>
+                    @endforelse
+                </div>
+            </div>
         </div>
 
+        {{-- Bottom bar --}}
+        <div class="mt-10 border-t border-white/10 pt-5 flex flex-col md:flex-row gap-2 md:items-center md:justify-between text-xs text-slate-200/70">
+            <div>© {{ $year }} {{ $companyName }} — {{ $appLocale==='en' ? 'All rights reserved.' : 'جميع الحقوق محفوظة.' }}</div>
+            <div class="text-slate-200/60">{{ $appLocale==='en' ? 'Built with Laravel + Filament.' : 'مبني باستخدام Laravel + Filament.' }}</div>
+        </div>
     </div>
 </footer>

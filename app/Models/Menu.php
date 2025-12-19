@@ -8,21 +8,23 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Menu extends Model
 {
     protected $fillable = [
+        'name',        // ✅ لازم عشان الفورم يحفظ اسم القائمة
+        'location',    // ✅ header | footer | both
         'code',
-        'title_ar',
-        'title_en',
         'order',
         'is_active',
+
+        // (اختياري) لو لسه بتستخدمهم في أجزاء أخرى:
+        'title_ar',
+        'title_en',
     ];
 
-    // ✅ كل العناصر (Parent + Child)
     public function items(): HasMany
     {
         return $this->hasMany(MenuItem::class, 'menu_id')
             ->orderBy('order');
     }
 
-    // ✅ العناصر الرئيسية فقط (استخدمها لو تحب في الواجهة)
     public function rootItems(): HasMany
     {
         return $this->items()->whereNull('parent_id');
