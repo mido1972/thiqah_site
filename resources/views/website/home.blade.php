@@ -10,14 +10,23 @@
 
 @section('content')
 
-@include('website.partials.page-hero', [
-    'title' => $isEn ? 'ERP, HR & Contracting Systems' : 'حلول ERP و HR وأنظمة المقاولات',
-    'subtitle' => $isEn
-        ? 'Enterprise-grade solutions with clean UI, secure workflows, and scalable architecture.'
-        : 'حلول احترافية بواجهة نظيفة وسير عمل آمن وقابل للتوسع.',
-    'ctaText' => $isEn ? 'Explore Services' : 'استعراض الخدمات',
-    'ctaUrl'  => url('/services') . '?lang=' . $locale,
+{{-- ✅ Hero Slider (DB Driven) --}}
+@include('website.partials.hero-slider', [
+    'heroSlider' => $heroSlider ?? null,
+    'locale' => $locale,
 ])
+
+{{-- ✅ Fallback (if no slider in DB) --}}
+@if(empty($heroSlider) || ($heroSlider?->slides?->where('is_active', true)->count() ?? 0) === 0)
+    @include('website.partials.page-hero', [
+        'title' => $isEn ? 'ERP, HR & Contracting Systems' : 'حلول ERP و HR وأنظمة المقاولات',
+        'subtitle' => $isEn
+            ? 'Enterprise-grade solutions with clean UI, secure workflows, and scalable architecture.'
+            : 'حلول احترافية بواجهة نظيفة وسير عمل آمن وقابل للتوسع.',
+        'ctaText' => $isEn ? 'Explore Services' : 'استعراض الخدمات',
+        'ctaUrl'  => url('/services') . '?lang=' . $locale,
+    ])
+@endif
 
 <section class="section">
     <div class="container-site">
