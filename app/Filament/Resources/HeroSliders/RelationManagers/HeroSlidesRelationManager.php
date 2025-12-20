@@ -89,7 +89,7 @@ class HeroSlidesRelationManager extends RelationManager
 
             TextInput::make('cta_url')
                 ->label('رابط الزر')
-                ->url()
+                ->placeholder('/contact أو https://example.com')
                 ->maxLength(255),
 
             TextInput::make('order')

@@ -4,6 +4,7 @@ namespace App\View\Composers;
 
 use App\Models\Menu;
 use App\Models\Page;
+use App\Models\HeroSlider;
 use App\Support\Settings;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
@@ -63,7 +64,7 @@ class WebsiteLayoutComposer
             : ($row['meta_keywords_ar'] ?? '');
 
         /* =========================================================
-         |  Pages (Header / Footer) – keep as is
+         |  Pages (Header / Footer)
          ========================================================= */
 
         $headerPages = collect();
@@ -93,9 +94,7 @@ class WebsiteLayoutComposer
         }
 
         /* =========================================================
-         |  ✅ Header Menu (FINAL - based on your Menu model: items())
-         |  menus.location = 'header'
-         |  menu_items.order for ordering
+         |  Header Menu (Menus + MenuItems)
          ========================================================= */
 
         $headerMenuTree = collect();
@@ -109,7 +108,6 @@ class WebsiteLayoutComposer
                 ->first();
 
             if ($menu) {
-                // ✅ Use confirmed relation: items()
                 $items = $menu->items()
                     ->where('is_active', 1)
                     ->orderBy('order')
@@ -125,6 +123,27 @@ class WebsiteLayoutComposer
             }
         } catch (\Throwable $e) {
             $headerMenuTree = collect();
+        }
+
+        /* =========================================================
+         |  ✅ Hero Slider (Home)
+         ========================================================= */
+
+        $heroSlider = null;
+
+        try {
+            $heroSlider = HeroSlider::query()
+                ->where('location', 'home')
+                ->where('is_active', 1)
+                ->with([
+                    'slides' => function ($q) {
+                        $q->where('is_active', 1)
+                          ->orderBy('order');
+                    }
+                ])
+                ->first();
+        } catch (\Throwable $e) {
+            $heroSlider = null;
         }
 
         /* =========================================================
@@ -179,6 +198,9 @@ class WebsiteLayoutComposer
             // Language switch
             'switchToArUrl'    => $switchToArUrl,
             'switchToEnUrl'    => $switchToEnUrl,
+
+            // ✅ Hero Slider
+            'heroSlider'       => $heroSlider,
         ]);
     }
 }

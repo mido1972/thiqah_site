@@ -2,6 +2,9 @@
     /** @var \Illuminate\Support\Collection|\App\Models\Service[] $services */
     $locale = request()->query('lang','ar') === 'en' ? 'en' : 'ar';
     $isEn = $locale === 'en';
+
+    // ✅ safe slides count
+    $activeSlidesCount = ($heroSlider?->slides?->where('is_active', true)->count() ?? 0);
 @endphp
 
 @extends('website.layout')
@@ -16,8 +19,8 @@
     'locale' => $locale,
 ])
 
-{{-- ✅ Fallback (if no slider in DB) --}}
-@if(empty($heroSlider) || ($heroSlider?->slides?->where('is_active', true)->count() ?? 0) === 0)
+{{-- ✅ Fallback only if slider missing OR has no active slides --}}
+@if(empty($heroSlider) || $activeSlidesCount === 0)
     @include('website.partials.page-hero', [
         'title' => $isEn ? 'ERP, HR & Contracting Systems' : 'حلول ERP و HR وأنظمة المقاولات',
         'subtitle' => $isEn

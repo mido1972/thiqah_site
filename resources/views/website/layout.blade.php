@@ -16,6 +16,9 @@
     $appLocale = strtolower((string) $appLocale) === 'en' ? 'en' : 'ar';
     $isRtl = ($isRtl ?? ($appLocale === 'ar'));
 
+    // ✅ IMPORTANT: sync Laravel locale with query lang
+    app()->setLocale($appLocale);
+
     // Safe settings getter from array
     $ss = fn ($key, $default = null) => data_get($siteSettings, $key, $default);
 
