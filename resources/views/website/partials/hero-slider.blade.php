@@ -2,132 +2,100 @@
     /** @var \App\Models\HeroSlider|null $slider */
     $slider = $heroSlider ?? null;
 
-    // ✅ Use query lang (your project standard)
-    $locale = $locale ?? (request()->query('lang', 'ar') === 'en' ? 'en' : 'ar');
-    $isEn = $locale === 'en';
+    $locale = $locale ?? request()->query('lang', 'ar');
+    $locale = strtolower((string) $locale) === 'en' ? 'en' : 'ar';
 
     $slides = $slider?->slides?->where('is_active', true)->values() ?? collect();
 
-    // ✅ Helper: pick localized value with fallback
-    $pick = function ($ar, $en) use ($isEn) {
-        $ar = is_string($ar) ? trim($ar) : $ar;
-        $en = is_string($en) ? trim($en) : $en;
-
-        if ($isEn) return $en ?: $ar;
-        return $ar ?: $en;
-    };
-
-    // ✅ Helper: append lang to internal links
-    $withLang = function (?string $url) use ($locale) {
-        $url = trim((string) $url);
-        if ($url === '') return null;
-
-        // absolute / special schemes
-        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) return $url;
-        if (str_starts_with($url, 'mailto:') || str_starts_with($url, 'tel:') || str_starts_with($url, '#')) return $url;
-
-        // internal
-        $full = url('/' . ltrim($url, '/'));
-        $sep = str_contains($full, '?') ? '&' : '?';
-        return $full . $sep . 'lang=' . $locale;
-    };
-
-    // ✅ Slide interval
-    $intervalMs = 6500;
+    // ✅ Auto-play interval (ms) from DB (with safety clamp)
+    $intervalMs = (int) ($slider->autoplay_interval_ms ?? 7000);
+    $intervalMs = max(1000, min($intervalMs, 60000)); // 1s .. 60s
 @endphp
 
 @if($slider && $slides->count())
-<section class="relative w-full overflow-hidden">
-    <div class="relative">
+@php
+    $sliderDomId = 'hero-slider-' . $slider->id;
+@endphp
 
-        {{-- Slides --}}
+<section id="{{ $sliderDomId }}" class="relative w-full overflow-hidden">
+    <div class="relative min-h-[520px] md:min-h-[600px]">
         @foreach($slides as $index => $slide)
             @php
                 $isFirst = $index === 0;
 
-                $title    = $pick($slide->title_ar ?? null, $slide->title_en ?? null);
-                $subtitle = $pick($slide->subtitle_ar ?? null, $slide->subtitle_en ?? null);
-                $content  = $pick($slide->content_ar ?? null, $slide->content_en ?? null);
+                $title = $locale === 'en'
+                    ? ($slide->title_en ?: $slide->title_ar)
+                    : ($slide->title_ar ?: $slide->title_en);
 
-                $ctaLabel = $pick($slide->cta_label_ar ?? null, $slide->cta_label_en ?? null);
-                $ctaUrl   = $withLang($slide->cta_url ?? null);
+                $subtitle = $locale === 'en'
+                    ? ($slide->subtitle_en ?: $slide->subtitle_ar)
+                    : ($slide->subtitle_ar ?: $slide->subtitle_en);
 
-                $bg = trim((string) ($slide->main_image ?? ''));
-                $bgUrl = $bg !== '' ? asset('storage/' . ltrim($bg, '/')) : null;
+                $content = $locale === 'en'
+                    ? ($slide->content_en ?: $slide->content_ar)
+                    : ($slide->content_ar ?: $slide->content_en);
 
-                $overlays = is_array($slide->overlay_images) ? array_values(array_filter($slide->overlay_images)) : [];
-                $overlays = array_slice($overlays, 0, 4); // max 4 overlays
+                $ctaLabel = $locale === 'en'
+                    ? ($slide->cta_label_en ?: $slide->cta_label_ar)
+                    : ($slide->cta_label_ar ?: $slide->cta_label_en);
+
+                $mainImage = $slide->main_image ? asset('storage/' . ltrim($slide->main_image, '/')) : null;
             @endphp
 
             <div
-                class="hero-slide absolute inset-0 transition-opacity duration-700 {{ $isFirst ? 'opacity-100 relative' : 'opacity-0 pointer-events-none' }}"
+                class="hero-slide absolute inset-0 transition-opacity duration-700 ease-out {{ $isFirst ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none' }}"
                 data-slide="{{ $index }}"
-                aria-hidden="{{ $isFirst ? 'false' : 'true' }}"
             >
-                {{-- Background --}}
-                @if($bgUrl)
+                {{-- Background image --}}
+                @if($mainImage)
                     <div class="absolute inset-0 bg-cover bg-center"
-                         style="background-image:url('{{ $bgUrl }}')"></div>
-                @else
-                    <div class="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"></div>
+                         style="background-image:url('{{ $mainImage }}')">
+                    </div>
                 @endif
 
-                {{-- Dark overlay --}}
-                <div class="absolute inset-0 bg-slate-950/70"></div>
+                {{-- Overlay (ممكن نزوده لو الصور عليها نصوص) --}}
+                <div class="absolute inset-0 bg-slate-950/60"></div>
 
                 {{-- Content --}}
-                <div class="relative z-10 max-w-7xl mx-auto px-6 py-24 md:py-32 text-white">
-                    <div class="max-w-2xl">
-
+                <div class="relative z-10 max-w-7xl mx-auto px-6 py-20 md:py-28 text-white">
+                    <div class="max-w-2xl {{ $locale === 'ar' ? 'ms-auto text-right' : 'me-auto text-left' }}">
                         @if($title)
-                            <h1 class="text-3xl md:text-5xl font-extrabold leading-tight mb-4">
+                            <h1 class="text-4xl md:text-6xl font-extrabold leading-tight mb-4 drop-shadow">
                                 {{ $title }}
                             </h1>
                         @endif
 
                         @if($subtitle)
-                            <p class="text-base md:text-lg opacity-90 mb-3">
+                            <p class="text-lg md:text-xl opacity-95 mb-3">
                                 {{ $subtitle }}
                             </p>
                         @endif
 
                         @if($content)
-                            <div class="prose prose-invert max-w-none mb-6">
+                            <div class="prose prose-invert max-w-none mb-6 text-white/95">
                                 {!! $content !!}
                             </div>
                         @endif
 
-                        @if($ctaUrl && $ctaLabel)
-                            <a href="{{ $ctaUrl }}"
+                        @if(!empty($slide->cta_url) && !empty($ctaLabel))
+                            <a href="{{ $slide->cta_url }}"
                                class="inline-flex items-center gap-2 px-6 py-3 rounded-xl
-                                      bg-orange-500 hover:bg-orange-600 text-white font-extrabold transition">
+                                      bg-orange-500 hover:bg-orange-600 text-white font-bold transition">
                                 {{ $ctaLabel }}
-                                <span aria-hidden="true">{{ $isEn ? '→' : '←' }}</span>
+                                <span class="text-white/90">{{ $locale === 'ar' ? '←' : '→' }}</span>
                             </a>
                         @endif
-
                     </div>
                 </div>
 
-                {{-- Overlay images (up to 4) --}}
-                @if(count($overlays))
-                    <div class="hidden lg:block absolute inset-0 z-10 pointer-events-none">
-                        @foreach($overlays as $k => $img)
-                            @php
-                                $imgUrl = asset('storage/' . ltrim($img, '/'));
-                                // positions preset (nice layout)
-                                $pos = [
-                                    'bottom-10 right-10',
-                                    'bottom-16 right-56',
-                                    'top-24 right-12',
-                                    'top-28 right-64',
-                                ][$k] ?? 'bottom-10 right-10';
-                            @endphp
+                {{-- Overlay Images (اختياري) --}}
+                @if(is_array($slide->overlay_images) && count($slide->overlay_images))
+                    <div class="hidden lg:block absolute bottom-10 {{ $locale === 'ar' ? 'left-10' : 'right-10' }} z-10 space-y-3">
+                        @foreach($slide->overlay_images as $img)
                             <img
-                                src="{{ $imgUrl }}"
-                                class="absolute {{ $pos }} max-h-40 opacity-95 drop-shadow-xl"
+                                src="{{ asset('storage/' . ltrim($img, '/')) }}"
+                                class="max-h-32 opacity-90 rounded-lg shadow"
                                 alt=""
-                                loading="lazy"
                             >
                         @endforeach
                     </div>
@@ -135,108 +103,119 @@
             </div>
         @endforeach
 
-        {{-- Dots --}}
-        @if($slides->count() > 1)
-            <div class="absolute bottom-6 left-0 right-0 z-20">
-                <div class="max-w-7xl mx-auto px-6 flex items-center gap-2 {{ $isEn ? 'justify-start' : 'justify-end' }}">
-                    @foreach($slides as $i => $s)
-                        <button
-                            type="button"
-                            class="hero-dot h-2.5 w-2.5 rounded-full bg-white/40 hover:bg-white/70 transition"
-                            data-dot="{{ $i }}"
-                            aria-label="Slide {{ $i + 1 }}"
-                        ></button>
-                    @endforeach
-                </div>
-            </div>
-        @endif
-
         {{-- Arrows --}}
         @if($slides->count() > 1)
             <button type="button"
-                    class="hero-prev hidden md:flex absolute top-1/2 -translate-y-1/2 z-20
-                           {{ $isEn ? 'left-6' : 'right-6' }}
-                           h-11 w-11 items-center justify-center rounded-2xl bg-white/10 hover:bg-white/20
-                           border border-white/15 text-white transition"
+                    class="hero-prev absolute top-1/2 -translate-y-1/2 z-20 {{ $locale === 'ar' ? 'right-6' : 'left-6' }}
+                           h-11 w-11 rounded-full border border-white/60 bg-black/25 hover:bg-black/40 transition
+                           flex items-center justify-center text-white"
                     aria-label="Previous slide">
-                {{ $isEn ? '←' : '→' }}
+                <span class="text-xl">{{ $locale === 'ar' ? '→' : '←' }}</span>
             </button>
 
             <button type="button"
-                    class="hero-next hidden md:flex absolute top-1/2 -translate-y-1/2 z-20
-                           {{ $isEn ? 'left-20' : 'right-20' }}
-                           h-11 w-11 items-center justify-center rounded-2xl bg-white/10 hover:bg-white/20
-                           border border-white/15 text-white transition"
+                    class="hero-next absolute top-1/2 -translate-y-1/2 z-20 {{ $locale === 'ar' ? 'right-20' : 'left-20' }}
+                           h-11 w-11 rounded-full border border-white/60 bg-black/25 hover:bg-black/40 transition
+                           flex items-center justify-center text-white"
                     aria-label="Next slide">
-                {{ $isEn ? '→' : '←' }}
+                <span class="text-xl">{{ $locale === 'ar' ? '←' : '→' }}</span>
             </button>
         @endif
 
+        {{-- Dots --}}
+        @if($slides->count() > 1)
+            <div class="hero-dots absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+                @foreach($slides as $i => $s)
+                    <button type="button"
+                            class="hero-dot h-2.5 w-2.5 rounded-full transition
+                                   {{ $i === 0 ? 'bg-white' : 'bg-white/40 hover:bg-white/70' }}"
+                            data-go="{{ $i }}"
+                            aria-label="Go to slide {{ $i + 1 }}">
+                    </button>
+                @endforeach
+            </div>
+        @endif
     </div>
 
-    {{-- Minimal JS slider (no libraries) --}}
+    {{-- ✅ Auto-play script (Vanilla, scoped لكل سلايدر) --}}
     @if($slides->count() > 1)
         <script>
             (function () {
-                const root = document.currentScript.closest('section');
+                const root = document.getElementById(@json($sliderDomId));
                 if (!root) return;
 
                 const slides = Array.from(root.querySelectorAll('.hero-slide'));
-                const dots = Array.from(root.querySelectorAll('.hero-dot'));
+                const dots   = Array.from(root.querySelectorAll('.hero-dot'));
                 const btnPrev = root.querySelector('.hero-prev');
                 const btnNext = root.querySelector('.hero-next');
 
-                let i = 0;
+                let index = 0;
                 let timer = null;
+                const intervalMs = @json($intervalMs);
 
-                function show(idx) {
-                    i = (idx + slides.length) % slides.length;
-                    slides.forEach((el, n) => {
-                        const active = n === i;
+                function setActive(i) {
+                    index = (i + slides.length) % slides.length;
+
+                    slides.forEach((el, idx) => {
+                        const active = idx === index;
                         el.classList.toggle('opacity-100', active);
+                        el.classList.toggle('pointer-events-auto', active);
                         el.classList.toggle('opacity-0', !active);
-                        el.classList.toggle('relative', active);
-                        el.classList.toggle('absolute', !active);
                         el.classList.toggle('pointer-events-none', !active);
-                        el.setAttribute('aria-hidden', active ? 'false' : 'true');
                     });
 
-                    dots.forEach((d, n) => {
-                        d.classList.toggle('bg-white', n === i);
-                        d.classList.toggle('bg-white/40', n !== i);
+                    dots.forEach((d, idx) => {
+                        const active = idx === index;
+                        d.classList.toggle('bg-white', active);
+                        d.classList.toggle('bg-white/40', !active);
                     });
                 }
 
-                function next() { show(i + 1); }
-                function prev() { show(i - 1); }
+                function next() { setActive(index + 1); }
+                function prev() { setActive(index - 1); }
 
                 function start() {
                     stop();
-                    timer = setInterval(next, {{ $intervalMs }});
+                    timer = setInterval(() => {
+                        // لو المستخدم على تبويب تاني، ما نبدّلاش
+                        if (document.hidden) return;
+                        next();
+                    }, intervalMs);
                 }
+
                 function stop() {
                     if (timer) clearInterval(timer);
                     timer = null;
                 }
 
-                // init
-                show(0);
-                start();
+                // Buttons
+                if (btnNext) btnNext.addEventListener('click', () => { next(); start(); });
+                if (btnPrev) btnPrev.addEventListener('click', () => { prev(); start(); });
 
-                dots.forEach((d) => {
-                    d.addEventListener('click', () => {
-                        const idx = parseInt(d.getAttribute('data-dot'), 10);
-                        show(idx);
+                // Dots
+                dots.forEach(dot => {
+                    dot.addEventListener('click', () => {
+                        const go = Number(dot.getAttribute('data-go') || 0);
+                        setActive(go);
                         start();
                     });
                 });
 
-                if (btnNext) btnNext.addEventListener('click', () => { next(); start(); });
-                if (btnPrev) btnPrev.addEventListener('click', () => { prev(); start(); });
-
-                // pause on hover
+                // Pause on hover / focus
                 root.addEventListener('mouseenter', stop);
                 root.addEventListener('mouseleave', start);
+                root.addEventListener('focusin', stop);
+                root.addEventListener('focusout', start);
+
+                // Stop when tab hidden, resume when visible
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) stop();
+                    else start();
+                });
+
+                // Init
+                setActive(0);
+                start();
             })();
         </script>
     @endif
