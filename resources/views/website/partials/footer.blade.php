@@ -117,29 +117,30 @@
     };
 @endphp
 
-<footer class="relative mt-12 text-white overflow-hidden">
+<footer class="site-footer">
     {{-- Background --}}
     <div class="absolute inset-0">
         @if($footerBgUrl)
             <img src="{{ $footerBgUrl }}" alt="Footer background" class="h-full w-full object-cover opacity-25" />
         @endif
-        <div class="absolute inset-0 bg-slate-950/90"></div>
+        <div class="absolute inset-0 bg-slate-950/94"></div>
+        <div class="absolute inset-0 footer-glow"></div>
     </div>
 
-    <div class="relative container-site py-12">
+    <div class="relative container-site py-14">
         <div class="grid gap-10 lg:grid-cols-12 items-start">
 
             {{-- Contact --}}
             <div class="lg:col-span-4">
-                <div class="text-lg font-black tracking-tight">{{ $companyName }}</div>
+                <div class="footer-brand">{{ $companyName }}</div>
 
                 @if($aboutShort)
-                    <p class="mt-3 text-sm leading-7 text-slate-200/85">
+                    <p class="footer-about">
                         {{ Str::limit($aboutShort, 240) }}
                     </p>
                 @endif
 
-                <div class="mt-6 space-y-3 text-sm text-slate-200/85">
+                <div class="footer-contact-list">
                     @if($address)
                         <div class="flex gap-2">
                             <span class="text-slate-200/60">•</span>
@@ -168,11 +169,9 @@
                         <div class="flex flex-wrap gap-2">
                             @foreach($socialLinks as $key => $url)
                                 <a href="{{ $url }}" target="_blank" rel="noopener"
-                                   class="h-10 w-10 rounded-full bg-white/10 border border-white/10
-                                          hover:bg-white/15 hover:border-white/20 transition
-                                          flex items-center justify-center"
+                                   class="footer-social-link footer-social-{{ $key }}"
                                    aria-label="{{ ucfirst($key) }}">
-                                    <span class="h-5 w-5 text-white">{!! $icons[$key] !!}</span>
+                                    <span>{!! $icons[$key] !!}</span>
                                 </a>
                             @endforeach
                         </div>
@@ -187,16 +186,16 @@
                         @php $links = $col->children ?? collect(); @endphp
 
                         <div>
-                            <div class="text-base font-extrabold">
+                            <div class="footer-heading">
                                 {{ $itemTitle($col) }}
                             </div>
-                            <div class="mt-3 h-px w-full bg-white/10"></div>
+                            <div class="footer-heading-line"></div>
 
                             @if($links->count())
-                                <ul class="mt-4 text-sm text-slate-200/85">
+                                <ul class="footer-links">
                                     @foreach($links as $link)
                                         <li class="py-3 {{ !$loop->last ? 'border-b border-white/10' : '' }}">
-                                            <a href="{{ $itemUrl($link) }}" class="hover:text-white transition">
+                                            <a href="{{ $itemUrl($link) }}">
                                                 {{ $itemTitle($link) }}
                                             </a>
                                         </li>
@@ -220,7 +219,7 @@
         </div>
 
         {{-- Bottom bar --}}
-        <div class="mt-10 border-t border-white/10 pt-5 flex flex-col md:flex-row gap-2 md:items-center md:justify-between text-xs text-slate-200/70">
+        <div class="footer-bottom">
             <div>© {{ $year }} {{ $companyName }} — {{ $appLocale==='en' ? 'All rights reserved.' : 'جميع الحقوق محفوظة.' }}</div>
             <div class="text-slate-200/60">{{ $appLocale==='en' ? 'Built with Laravel + Filament.' : 'مبني باستخدام Laravel + Filament.' }}</div>
         </div>

@@ -6,6 +6,7 @@ use App\Models\Menu;
 use App\Models\Page;
 use App\Models\Service;
 use App\Models\Setting;
+use App\Models\HeroSlider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -94,6 +95,17 @@ class WebsiteController extends Controller
      */
     public function home(Request $request)
     {
+        $heroSlider = HeroSlider::query()
+            ->where('location', 'home')
+            ->where('is_active', true)
+            ->with([
+                'slides' => fn ($q) => $q
+                    ->where('is_active', true)
+                    ->orderBy('order')
+                    ->orderBy('id'),
+            ])
+            ->first();
+
         $services = Service::query()
             ->where('is_active', true)
             ->orderByRaw('coalesce(sort_order, 999999) asc')
@@ -101,6 +113,7 @@ class WebsiteController extends Controller
             ->get();
 
         return view('website.home', $this->viewData($request, [
+            'heroSlider' => $heroSlider,
             'services' => $services,
         ]));
     }

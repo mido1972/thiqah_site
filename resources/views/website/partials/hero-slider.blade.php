@@ -7,9 +7,8 @@
 
     $slides = $slider?->slides?->where('is_active', true)->values() ?? collect();
 
-    // ✅ Auto-play interval (ms) from DB (with safety clamp)
     $intervalMs = (int) ($slider->autoplay_interval_ms ?? 7000);
-    $intervalMs = max(1000, min($intervalMs, 60000)); // 1s .. 60s
+    $intervalMs = max(1000, min($intervalMs, 60000));
 @endphp
 
 @if($slider && $slides->count())
@@ -17,8 +16,8 @@
     $sliderDomId = 'hero-slider-' . $slider->id;
 @endphp
 
-<section id="{{ $sliderDomId }}" class="relative w-full overflow-hidden">
-    <div class="relative min-h-[520px] md:min-h-[600px]">
+<section id="{{ $sliderDomId }}" class="hero-shell">
+    <div class="hero-panel">
         @foreach($slides as $index => $slide)
             @php
                 $isFirst = $index === 0;
@@ -46,55 +45,56 @@
                 class="hero-slide absolute inset-0 transition-opacity duration-700 ease-out {{ $isFirst ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none' }}"
                 data-slide="{{ $index }}"
             >
-                {{-- Background image --}}
                 @if($mainImage)
-                    <div class="absolute inset-0 bg-cover bg-center"
+                    <div class="absolute inset-0 scale-[1.03] bg-cover bg-center"
                          style="background-image:url('{{ $mainImage }}')">
                     </div>
+                @else
+                    <div class="absolute inset-0 bg-slate-950"></div>
                 @endif
 
-                {{-- Overlay (ممكن نزوده لو الصور عليها نصوص) --}}
-                <div class="absolute inset-0 bg-slate-950/60"></div>
+                <div class="hero-scrim absolute inset-0"></div>
 
-                {{-- Content --}}
-                <div class="relative z-10 max-w-7xl mx-auto px-6 py-20 md:py-28 text-white">
-                    <div class="max-w-2xl {{ $locale === 'ar' ? 'ms-auto text-right' : 'me-auto text-left' }}">
+                <div class="relative z-10 mx-auto flex min-h-[560px] max-w-7xl items-center px-4 py-20 sm:px-6 md:min-h-[660px] lg:px-8">
+                    <div class="{{ $locale === 'ar' ? 'ms-auto text-right' : 'me-auto text-left' }}">
+                        <div class="hero-kicker">
+                            <span class="h-2 w-2 rounded-full bg-amber-300"></span>
+                            {{ $locale === 'en' ? 'THIQA I-Tech Solutions' : 'ثقة لتقنية نظم المعلومات' }}
+                        </div>
+
                         @if($title)
-                            <h1 class="text-4xl md:text-6xl font-extrabold leading-tight mb-4 drop-shadow">
+                            <h1 class="hero-title">
                                 {{ $title }}
                             </h1>
                         @endif
 
                         @if($subtitle)
-                            <p class="text-lg md:text-xl opacity-95 mb-3">
+                            <p class="hero-subtitle">
                                 {{ $subtitle }}
                             </p>
                         @endif
 
                         @if($content)
-                            <div class="prose prose-invert max-w-none mb-6 text-white/95">
+                            <div class="hero-content prose prose-invert max-w-none">
                                 {!! $content !!}
                             </div>
                         @endif
 
                         @if(!empty($slide->cta_url) && !empty($ctaLabel))
-                            <a href="{{ $slide->cta_url }}"
-                               class="inline-flex items-center gap-2 px-6 py-3 rounded-xl
-                                      bg-orange-500 hover:bg-orange-600 text-white font-bold transition">
+                            <a href="{{ $slide->cta_url }}" class="hero-cta">
                                 {{ $ctaLabel }}
-                                <span class="text-white/90">{{ $locale === 'ar' ? '←' : '→' }}</span>
+                                <span>{{ $locale === 'ar' ? '←' : '→' }}</span>
                             </a>
                         @endif
                     </div>
                 </div>
 
-                {{-- Overlay Images (اختياري) --}}
                 @if(is_array($slide->overlay_images) && count($slide->overlay_images))
-                    <div class="hidden lg:block absolute bottom-10 {{ $locale === 'ar' ? 'left-10' : 'right-10' }} z-10 space-y-3">
+                    <div class="absolute bottom-10 {{ $locale === 'ar' ? 'left-10' : 'right-10' }} z-10 hidden space-y-3 lg:block">
                         @foreach($slide->overlay_images as $img)
                             <img
                                 src="{{ asset('storage/' . ltrim($img, '/')) }}"
-                                class="max-h-32 opacity-90 rounded-lg shadow"
+                                class="max-h-32 rounded-lg border border-white/20 bg-white/10 p-2 opacity-95 shadow-2xl backdrop-blur"
                                 alt=""
                             >
                         @endforeach
@@ -103,32 +103,25 @@
             </div>
         @endforeach
 
-        {{-- Arrows --}}
         @if($slides->count() > 1)
             <button type="button"
-                    class="hero-prev absolute top-1/2 -translate-y-1/2 z-20 {{ $locale === 'ar' ? 'right-6' : 'left-6' }}
-                           h-11 w-11 rounded-full border border-white/60 bg-black/25 hover:bg-black/40 transition
-                           flex items-center justify-center text-white"
+                    class="hero-prev hero-nav {{ $locale === 'ar' ? 'right-4 md:right-8' : 'left-4 md:left-8' }}"
                     aria-label="Previous slide">
                 <span class="text-xl">{{ $locale === 'ar' ? '→' : '←' }}</span>
             </button>
 
             <button type="button"
-                    class="hero-next absolute top-1/2 -translate-y-1/2 z-20 {{ $locale === 'ar' ? 'right-20' : 'left-20' }}
-                           h-11 w-11 rounded-full border border-white/60 bg-black/25 hover:bg-black/40 transition
-                           flex items-center justify-center text-white"
+                    class="hero-next hero-nav {{ $locale === 'ar' ? 'right-[4.5rem] md:right-[5.5rem]' : 'left-[4.5rem] md:left-[5.5rem]' }}"
                     aria-label="Next slide">
                 <span class="text-xl">{{ $locale === 'ar' ? '←' : '→' }}</span>
             </button>
         @endif
 
-        {{-- Dots --}}
         @if($slides->count() > 1)
-            <div class="hero-dots absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+            <div class="hero-dots absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
                 @foreach($slides as $i => $s)
                     <button type="button"
-                            class="hero-dot h-2.5 w-2.5 rounded-full transition
-                                   {{ $i === 0 ? 'bg-white' : 'bg-white/40 hover:bg-white/70' }}"
+                            class="hero-dot {{ $i === 0 ? 'bg-amber-300' : 'bg-white/40 hover:bg-white/70' }}"
                             data-go="{{ $i }}"
                             aria-label="Go to slide {{ $i + 1 }}">
                     </button>
@@ -137,7 +130,6 @@
         @endif
     </div>
 
-    {{-- ✅ Auto-play script (Vanilla, scoped لكل سلايدر) --}}
     @if($slides->count() > 1)
         <script>
             (function () {
@@ -145,7 +137,7 @@
                 if (!root) return;
 
                 const slides = Array.from(root.querySelectorAll('.hero-slide'));
-                const dots   = Array.from(root.querySelectorAll('.hero-dot'));
+                const dots = Array.from(root.querySelectorAll('.hero-dot'));
                 const btnPrev = root.querySelector('.hero-prev');
                 const btnNext = root.querySelector('.hero-next');
 
@@ -166,7 +158,7 @@
 
                     dots.forEach((d, idx) => {
                         const active = idx === index;
-                        d.classList.toggle('bg-white', active);
+                        d.classList.toggle('bg-amber-300', active);
                         d.classList.toggle('bg-white/40', !active);
                     });
                 }
@@ -177,9 +169,7 @@
                 function start() {
                     stop();
                     timer = setInterval(() => {
-                        // لو المستخدم على تبويب تاني، ما نبدّلاش
-                        if (document.hidden) return;
-                        next();
+                        if (!document.hidden) next();
                     }, intervalMs);
                 }
 
@@ -188,32 +178,26 @@
                     timer = null;
                 }
 
-                // Buttons
                 if (btnNext) btnNext.addEventListener('click', () => { next(); start(); });
                 if (btnPrev) btnPrev.addEventListener('click', () => { prev(); start(); });
 
-                // Dots
                 dots.forEach(dot => {
                     dot.addEventListener('click', () => {
-                        const go = Number(dot.getAttribute('data-go') || 0);
-                        setActive(go);
+                        setActive(Number(dot.getAttribute('data-go') || 0));
                         start();
                     });
                 });
 
-                // Pause on hover / focus
                 root.addEventListener('mouseenter', stop);
                 root.addEventListener('mouseleave', start);
                 root.addEventListener('focusin', stop);
                 root.addEventListener('focusout', start);
 
-                // Stop when tab hidden, resume when visible
                 document.addEventListener('visibilitychange', () => {
                     if (document.hidden) stop();
                     else start();
                 });
 
-                // Init
                 setActive(0);
                 start();
             })();
