@@ -50,6 +50,29 @@
             $faviconUrl = asset('storage/' . $faviconRaw);
         }
     }
+
+    $shouldUseViteDevServer = false;
+    $hotFile = public_path('hot');
+    $manifestFile = public_path('build/manifest.json');
+    $manifest = [];
+
+    if (is_file($hotFile)) {
+        $hotUrl = trim((string) file_get_contents($hotFile));
+        $host = parse_url($hotUrl, PHP_URL_HOST);
+        $port = (int) (parse_url($hotUrl, PHP_URL_PORT) ?: 5173);
+
+        if ($host) {
+            $connection = @fsockopen($host, $port, $errno, $errstr, 0.3);
+            if (is_resource($connection)) {
+                fclose($connection);
+                $shouldUseViteDevServer = true;
+            }
+        }
+    }
+
+    if (!$shouldUseViteDevServer && is_file($manifestFile)) {
+        $manifest = json_decode((string) file_get_contents($manifestFile), true) ?: [];
+    }
 @endphp
 
 <!doctype html>
@@ -73,7 +96,16 @@
     @yield('extra_head')
 
     {{-- ✅ Keep Vite ONLY here --}}
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @if($shouldUseViteDevServer)
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @else
+        @if(!empty($manifest['resources/css/app.css']['file']))
+            <link rel="stylesheet" href="{{ asset('build/' . $manifest['resources/css/app.css']['file']) }}">
+        @endif
+        @if(!empty($manifest['resources/js/app.js']['file']))
+            <script type="module" src="{{ asset('build/' . $manifest['resources/js/app.js']['file']) }}"></script>
+        @endif
+    @endif
 </head>
 
 <body class="min-h-screen bg-slate-50 text-slate-900">
