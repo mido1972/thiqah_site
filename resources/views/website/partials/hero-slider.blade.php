@@ -1,207 +1,84 @@
-@php
-    /** @var \App\Models\HeroSlider|null $slider */
-    $slider = $heroSlider ?? null;
+﻿@php
+    use Illuminate\Support\Str;
 
+    $slider = $heroSlider ?? null;
     $locale = $locale ?? request()->query('lang', 'ar');
     $locale = strtolower((string) $locale) === 'en' ? 'en' : 'ar';
-
     $slides = $slider?->slides?->where('is_active', true)->values() ?? collect();
-
-    $intervalMs = (int) ($slider->autoplay_interval_ms ?? 7000);
-    $intervalMs = max(1000, min($intervalMs, 60000));
 @endphp
 
-@if($slider && $slides->count())
-@php
-    $sliderDomId = 'hero-slider-' . $slider->id;
-@endphp
-
-<section id="{{ $sliderDomId }}" class="hero-shell">
-    <div class="hero-panel">
-        @foreach($slides as $index => $slide)
-            @php
-                $isFirst = $index === 0;
-
-                $title = $locale === 'en'
-                    ? ($slide->title_en ?: $slide->title_ar)
-                    : ($slide->title_ar ?: $slide->title_en);
-
-                $subtitle = $locale === 'en'
-                    ? ($slide->subtitle_en ?: $slide->subtitle_ar)
-                    : ($slide->subtitle_ar ?: $slide->subtitle_en);
-
-                $content = $locale === 'en'
-                    ? ($slide->content_en ?: $slide->content_ar)
-                    : ($slide->content_ar ?: $slide->content_en);
-
-                $ctaLabel = $locale === 'en'
-                    ? ($slide->cta_label_en ?: $slide->cta_label_ar)
-                    : ($slide->cta_label_ar ?: $slide->cta_label_en);
-
-                $mainImage = $slide->main_image ? asset('storage/' . ltrim($slide->main_image, '/')) : null;
-            @endphp
-
-            <div
-                class="hero-slide absolute inset-0 transition-opacity duration-700 ease-out {{ $isFirst ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none' }}"
-                data-slide="{{ $index }}"
-            >
-                @if($mainImage)
-                    <div class="absolute inset-0 scale-[1.03] bg-cover bg-center"
-                         style="background-image:url('{{ $mainImage }}')">
-                    </div>
-                @else
-                    <div class="absolute inset-0 bg-slate-950"></div>
-                @endif
-
-                <div class="hero-scrim absolute inset-0"></div>
-
-                <div class="relative z-10 mx-auto flex min-h-[560px] max-w-7xl items-center px-4 py-20 sm:px-6 md:min-h-[660px] lg:px-8">
-                    <div class="{{ $locale === 'ar' ? 'ms-auto text-right' : 'me-auto text-left' }}">
-                        <div class="hero-kicker">
-                            <span class="h-2 w-2 rounded-full bg-amber-300"></span>
-                            {{ $locale === 'en' ? 'THIQA I-Tech Solutions' : 'ثقة لتقنية نظم المعلومات' }}
-                        </div>
-
-                        @if($title)
-                            <h1 class="hero-title">
-                                {{ $title }}
-                            </h1>
-                        @endif
-
-                        @if($subtitle)
-                            <p class="hero-subtitle">
-                                {{ $subtitle }}
-                            </p>
-                        @endif
-
-                        @if($content)
-                            <div class="hero-content prose prose-invert max-w-none">
-                                {!! $content !!}
+<section class="hero-section style-6 mx-30 nhb-br-0 lg-mx-0 mt-30 lg-mt-0">
+    <div class="bg image"><img src="{{ asset('assets/images/banner/hm6-bg01.jpg') }}" alt=""></div>
+    <div class="hero-scroll smooth">
+        <a href="#about-section" id="scrollLink">
+            <div class="scroll-me">{{ $locale === 'en' ? 'Scroll Down' : 'انزل للأسفل' }}</div>
+            <div class="hero-social_arrow"><img src="{{ asset('assets/images/icons/arrow-down-long.png') }}" alt=""></div>
+        </a>
+    </div>
+    <div class="p-top-right wow slideInDown" data-wow-delay="500ms" data-wow-duration="1000ms"><img src="{{ asset('assets/images/banner/home4-shape01.png') }}" alt=""></div>
+    <div class="hero-slider-6 swiper">
+        <div class="swiper-wrapper">
+            @forelse($slides as $slide)
+                @php
+                    $title = $locale === 'en' ? ($slide->title_en ?: $slide->title_ar) : ($slide->title_ar ?: $slide->title_en);
+                    $subtitle = $locale === 'en' ? ($slide->subtitle_en ?: $slide->subtitle_ar) : ($slide->subtitle_ar ?: $slide->subtitle_en);
+                    $content = $locale === 'en' ? ($slide->content_en ?: $slide->content_ar) : ($slide->content_ar ?: $slide->content_en);
+                    $ctaLabel = $locale === 'en' ? ($slide->cta_label_en ?: $slide->cta_label_ar ?: 'Learn More') : ($slide->cta_label_ar ?: $slide->cta_label_en ?: 'اعرف المزيد');
+                    $image = !empty($slide->main_image) ? asset('storage/' . ltrim($slide->main_image, '/')) : asset('assets/images/banner/hm6-img01.png');
+                @endphp
+                <div class="swiper-slide">
+                    <div class="container">
+                        <div class="row align-items-center">
+                            <div class="col-lg-7">
+                                <div class="hero-content md-mb-50">
+                                    <h1 class="title">{!! nl2br(e($title ?: ($locale === 'en' ? 'Integrated Software For Modern Operations' : 'حلول برمجية متكاملة لإدارة أعمالك'))) !!}</h1>
+                                    <div class="text">
+                                        <div class="icon spin"><img src="{{ asset('assets/images/shapes/star3.png') }}" alt=""></div>
+                                        <p>{{ Str::limit(trim(strip_tags((string) ($subtitle ?: $content))), 180) }}</p>
+                                    </div>
+                                    <a href="{{ $slide->cta_url ?: route('website.contact', ['lang' => $locale]) }}" class="theme-btn bg-color10">
+                                        <span class="link-effect"><span class="effect-1">{{ $ctaLabel }}</span><span class="effect-1">{{ $ctaLabel }}</span></span>
+                                        <i class="fa-regular fa-arrow-right-long"></i>
+                                    </a>
+                                </div>
                             </div>
-                        @endif
-
-                        @if(!empty($slide->cta_url) && !empty($ctaLabel))
-                            <a href="{{ $slide->cta_url }}" class="hero-cta">
-                                {{ $ctaLabel }}
-                                <span>{{ $locale === 'ar' ? '←' : '→' }}</span>
-                            </a>
-                        @endif
+                            <div class="col-lg-5">
+                                <div class="hero-right">
+                                    <div class="image-box hero-slide-image-box"><img src="{{ $image }}" alt="{{ $title }}"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                @if(is_array($slide->overlay_images) && count($slide->overlay_images))
-                    <div class="absolute bottom-10 {{ $locale === 'ar' ? 'left-10' : 'right-10' }} z-10 hidden space-y-3 lg:block">
-                        @foreach($slide->overlay_images as $img)
-                            <img
-                                src="{{ asset('storage/' . ltrim($img, '/')) }}"
-                                class="max-h-32 rounded-lg border border-white/20 bg-white/10 p-2 opacity-95 shadow-2xl backdrop-blur"
-                                alt=""
-                            >
-                        @endforeach
+            @empty
+                <div class="swiper-slide">
+                    <div class="container">
+                        <div class="row align-items-center">
+                            <div class="col-lg-7">
+                                <div class="hero-content md-mb-50">
+                                    <h1 class="title">{{ $locale === 'en' ? 'ERP, HR and Contracting Solutions' : 'حلول ERP والموارد البشرية والمقاولات' }}</h1>
+                                    <div class="text"><div class="icon spin"><img src="{{ asset('assets/images/shapes/star3.png') }}" alt=""></div><p>{{ $locale === 'en' ? 'Professional systems that organize operations, improve visibility and support growth.' : 'أنظمة احترافية لتنظيم التشغيل ورفع كفاءة الأداء ودعم التوسع.' }}</p></div>
+                                    <a href="{{ route('website.contact', ['lang' => $locale]) }}" class="theme-btn bg-color10"><span class="link-effect"><span class="effect-1">{{ $locale === 'en' ? 'Free Consultation' : 'استشارة مجانية' }}</span><span class="effect-1">{{ $locale === 'en' ? 'Free Consultation' : 'استشارة مجانية' }}</span></span><i class="fa-regular fa-arrow-right-long"></i></a>
+                                </div>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="hero-right">
+                                    <div class="image-box hero-slide-image-box"><img src="{{ asset('assets/images/banner/hm6-img01.png') }}" alt=""></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                @endif
-            </div>
-        @endforeach
-
-        @if($slides->count() > 1)
-            <button type="button"
-                    class="hero-prev hero-nav {{ $locale === 'ar' ? 'right-4 md:right-8' : 'left-4 md:left-8' }}"
-                    aria-label="Previous slide">
-                <span class="text-xl">{{ $locale === 'ar' ? '→' : '←' }}</span>
-            </button>
-
-            <button type="button"
-                    class="hero-next hero-nav {{ $locale === 'ar' ? 'right-[4.5rem] md:right-[5.5rem]' : 'left-[4.5rem] md:left-[5.5rem]' }}"
-                    aria-label="Next slide">
-                <span class="text-xl">{{ $locale === 'ar' ? '←' : '→' }}</span>
-            </button>
-        @endif
-
-        @if($slides->count() > 1)
-            <div class="hero-dots absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
-                @foreach($slides as $i => $s)
-                    <button type="button"
-                            class="hero-dot {{ $i === 0 ? 'bg-amber-300' : 'bg-white/40 hover:bg-white/70' }}"
-                            data-go="{{ $i }}"
-                            aria-label="Go to slide {{ $i + 1 }}">
-                    </button>
-                @endforeach
-            </div>
-        @endif
+                </div>
+            @endforelse
+        </div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
     </div>
-
-    @if($slides->count() > 1)
-        <script>
-            (function () {
-                const root = document.getElementById(@json($sliderDomId));
-                if (!root) return;
-
-                const slides = Array.from(root.querySelectorAll('.hero-slide'));
-                const dots = Array.from(root.querySelectorAll('.hero-dot'));
-                const btnPrev = root.querySelector('.hero-prev');
-                const btnNext = root.querySelector('.hero-next');
-
-                let index = 0;
-                let timer = null;
-                const intervalMs = @json($intervalMs);
-
-                function setActive(i) {
-                    index = (i + slides.length) % slides.length;
-
-                    slides.forEach((el, idx) => {
-                        const active = idx === index;
-                        el.classList.toggle('opacity-100', active);
-                        el.classList.toggle('pointer-events-auto', active);
-                        el.classList.toggle('opacity-0', !active);
-                        el.classList.toggle('pointer-events-none', !active);
-                    });
-
-                    dots.forEach((d, idx) => {
-                        const active = idx === index;
-                        d.classList.toggle('bg-amber-300', active);
-                        d.classList.toggle('bg-white/40', !active);
-                    });
-                }
-
-                function next() { setActive(index + 1); }
-                function prev() { setActive(index - 1); }
-
-                function start() {
-                    stop();
-                    timer = setInterval(() => {
-                        if (!document.hidden) next();
-                    }, intervalMs);
-                }
-
-                function stop() {
-                    if (timer) clearInterval(timer);
-                    timer = null;
-                }
-
-                if (btnNext) btnNext.addEventListener('click', () => { next(); start(); });
-                if (btnPrev) btnPrev.addEventListener('click', () => { prev(); start(); });
-
-                dots.forEach(dot => {
-                    dot.addEventListener('click', () => {
-                        setActive(Number(dot.getAttribute('data-go') || 0));
-                        start();
-                    });
-                });
-
-                root.addEventListener('mouseenter', stop);
-                root.addEventListener('mouseleave', start);
-                root.addEventListener('focusin', stop);
-                root.addEventListener('focusout', start);
-
-                document.addEventListener('visibilitychange', () => {
-                    if (document.hidden) stop();
-                    else start();
-                });
-
-                setActive(0);
-                start();
-            })();
-        </script>
-    @endif
+    <div class="info-box style-2 bg-theme3 z-1 shape-mockup-wrap">
+        <div class="inner-box">
+            <div class="bg image"><img src="{{ asset('assets/images/banner/hm5-info-bg.png') }}" alt=""></div>
+            <div class="content"><div class="awards"><span class="count-number odometer" data-count="{{ max($slides->count(), 1) * 4 }}">0</span><span class="plus">+</span></div><p>{{ $locale === 'en' ? 'Integrated business solutions' : 'حلول أعمال متكاملة' }}</p></div>
+            <div class="image p-bottom-right shape-mockup" data-right="15px"><img src="{{ asset('assets/images/banner/hm6-info-img01.png') }}" alt=""></div>
+        </div>
+    </div>
 </section>
-@endif

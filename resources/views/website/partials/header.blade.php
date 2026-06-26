@@ -1,214 +1,201 @@
-@php
-    $appLocale = $appLocale ?? 'ar';
-    $isRtl = ($appLocale === 'ar');
+﻿@php
+    $appLocale = $appLocale ?? request()->query('lang', 'ar');
+    $appLocale = strtolower((string) $appLocale) === 'en' ? 'en' : 'ar';
 
-    $itemTitle = fn ($item) =>
-        $appLocale === 'en'
-            ? ($item->title_en ?: $item->title_ar)
-            : ($item->title_ar ?: $item->title_en);
+    $itemTitle = fn ($item) => $appLocale === 'en'
+        ? ($item->title_en ?: $item->title_ar)
+        : ($item->title_ar ?: $item->title_en);
 
-    $itemUrl = function ($item) {
+    $itemUrl = function ($item) use ($appLocale) {
         if (!empty($item->route_name) && \Route::has($item->route_name)) {
-            try {
-                return route($item->route_name);
-            } catch (\Throwable $e) {
-            }
+            try { return route($item->route_name, ['lang' => $appLocale]); } catch (\Throwable $e) {}
         }
-
-        if (($item->type ?? '') === 'page' && !empty($item->page_id) && isset($item->page) && $item->page) {
-            $slug = $item->page->slug ?? null;
-            if ($slug) {
-                return url('/' . ltrim($slug, '/'));
-            }
+        if (($item->type ?? '') === 'page' && !empty($item->page_id) && !empty($item->page?->slug)) {
+            return route('website.page', ['slug' => $item->page->slug, 'lang' => $appLocale]);
         }
-
-        $u = trim((string) ($item->url ?? ''));
-        if ($u === '') return '#';
-        if (str_starts_with($u, 'http://') || str_starts_with($u, 'https://')) return $u;
-        if (str_starts_with($u, '#') || str_starts_with($u, 'mailto:') || str_starts_with($u, 'tel:')) return $u;
-
-        return url('/' . ltrim($u, '/'));
+        $url = trim((string) ($item->url ?? ''));
+        if ($url === '') return '#';
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) return $url;
+        if (str_starts_with($url, '#') || str_starts_with($url, 'mailto:') || str_starts_with($url, 'tel:')) return $url;
+        return url('/' . ltrim($url, '/')) . '?lang=' . $appLocale;
     };
 
-    $itemTarget = fn ($item) =>
-        !empty($item->open_in_new_tab)
-            ? ' target="_blank" rel="noopener noreferrer"'
-            : '';
-
-    $companyNameAr = $companyNameAr ?? ($siteSettings['company_name'] ?? 'ثقة');
-    $companyNameEn = $companyNameEn ?? ($siteSettings['company_name_en'] ?? 'Thiqah');
-    $companyLogo = $companyLogo ?? ($siteSettings['company_logo'] ?? ($siteSettings['logo'] ?? null));
-
-    $topPhone = $topPhone ?? ($companyPhone ?? null);
-    $topEmail = $topEmail ?? ($companyEmail ?? null);
-
+    $itemTarget = fn ($item) => !empty($item->open_in_new_tab) ? ' target="_blank" rel="noopener noreferrer"' : '';
+    $companyName = $appLocale === 'en' ? ($companyNameEn ?? data_get($siteSettings ?? [], 'company_name_en', 'Thiqah')) : ($companyNameAr ?? data_get($siteSettings ?? [], 'company_name', 'ثقة'));
+    $companyLogo = $companyLogo ?? data_get($siteSettings ?? [], 'company_logo') ?? data_get($siteSettings ?? [], 'logo');
+    $logoUrl = $companyLogo ? (str_starts_with($companyLogo, 'http') ? $companyLogo : asset('storage/' . ltrim(preg_replace('#^storage/#', '', $companyLogo), '/'))) : asset('assets/images/logo/logo-2.png');
     $ctaLabel = $ctaLabel ?? ($appLocale === 'en' ? 'Get a Quote' : 'اطلب عرض سعر');
-    $ctaUrl = $ctaUrl ?? url('/contact');
-
+    $ctaUrl = ($ctaUrl ?? route('website.contact')) . '?lang=' . $appLocale;
+    $address = $appLocale === 'en' ? (data_get($siteSettings ?? [], 'address_en') ?: data_get($siteSettings ?? [], 'address') ?: 'Cairo, Egypt') : (data_get($siteSettings ?? [], 'address') ?: data_get($siteSettings ?? [], 'address_en') ?: 'القاهرة، مصر');
+    $aboutShort = $appLocale === 'en' ? (data_get($siteSettings ?? [], 'about_short_en') ?: 'Integrated ERP, HR and contracting systems for growing businesses.') : (data_get($siteSettings ?? [], 'about_short') ?: 'حلول متكاملة لإدارة ERP والموارد البشرية والمقاولات للشركات الطموحة.');
+    $topPhone = $topPhone ?? $companyPhone ?? null;
+    $topEmail = $topEmail ?? $companyEmail ?? null;
     $headerMenuTree = $headerMenuTree ?? collect();
-
-    $tagline = $appLocale === 'en'
-        ? (data_get($siteSettings ?? [], 'header_tagline_en')
-            ?? data_get($siteSettings ?? [], 'about_short_en')
-            ?? data_get($siteSettings ?? [], 'company_tagline_en')
-            ?? '')
-        : (data_get($siteSettings ?? [], 'header_tagline_ar')
-            ?? data_get($siteSettings ?? [], 'about_short')
-            ?? data_get($siteSettings ?? [], 'company_tagline_ar')
-            ?? '');
-
-    $tagline = trim((string) $tagline);
-
-    if ($tagline === '') {
-        $tagline = $appLocale === 'en'
-            ? 'ERP, HR and Contracting Systems'
-            : 'حلول ERP و HR وإدارة العقود';
-    }
-
-    $social = $socialLinks ?? [
-        'facebook' => data_get($siteSettings ?? [], 'facebook'),
-        'instagram' => data_get($siteSettings ?? [], 'instagram'),
-        'linkedin' => data_get($siteSettings ?? [], 'linkedin'),
-        'twitter' => data_get($siteSettings ?? [], 'twitter') ?? data_get($siteSettings ?? [], 'x'),
+    $social = collect($socialLinks ?? [])->filter();
+    $socialIcons = [
+        'facebook' => 'fab fa-facebook-f',
+        'instagram' => 'fab fa-instagram',
+        'linkedin' => 'fab fa-linkedin-in',
+        'twitter' => 'fab fa-twitter',
+        'youtube' => 'fab fa-youtube',
+        'tiktok' => 'fab fa-tiktok',
+        'whatsapp' => 'fab fa-whatsapp',
     ];
-
-    $safeHref = function ($url) {
-        $u = trim((string) $url);
-        if ($u === '') return null;
-        if (str_starts_with($u, 'http://') || str_starts_with($u, 'https://')) return $u;
-        return $u;
-    };
-
-    $logoUrl = null;
-    if (!empty($companyLogo)) {
-        $logoUrl = str_starts_with($companyLogo, 'http')
-            ? $companyLogo
-            : asset('storage/' . ltrim(preg_replace('#^storage/#', '', $companyLogo), '/'));
-    }
 @endphp
 
-<header class="site-header">
-    <div class="topbar hidden md:block">
-        <div class="mx-auto max-w-7xl px-4">
-            <div class="flex h-10 items-center justify-between text-sm">
-                <div class="flex items-center gap-5">
-                    @if(!empty($topEmail))
-                        <a class="topbar-link" href="mailto:{{ $topEmail }}">
-                            <span class="topbar-icon">✉</span>
-                            <span>{{ $topEmail }}</span>
-                        </a>
-                    @endif
-
-                    @if(!empty($topPhone))
-                        <a class="topbar-link" href="tel:{{ $topPhone }}" dir="ltr">
-                            <span class="topbar-icon">☎</span>
-                            <span>{{ $topPhone }}</span>
-                        </a>
-                    @endif
-                </div>
-
-                <div class="flex items-center gap-2">
-                    @foreach(['facebook' => 'f', 'instagram' => 'ig', 'linkedin' => 'in', 'twitter' => 'x'] as $key => $label)
-                        @if($safeHref($social[$key] ?? null))
-                            <a href="{{ $safeHref($social[$key]) }}" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="{{ $key }}">
-                                {{ $label }}
-                            </a>
-                        @endif
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="mx-auto max-w-7xl px-4">
-        <div class="flex min-h-[5.75rem] items-center justify-between gap-5 py-3">
-            <a href="{{ url('/') }}" class="brand-lockup">
-                @if($logoUrl)
-                    <span class="brand-logo-frame">
-                        <img src="{{ $logoUrl }}" alt="{{ $appLocale === 'en' ? $companyNameEn : $companyNameAr }}" class="brand-logo-img" loading="lazy">
-                    </span>
-                @else
-                    <span class="brand-logo-fallback">T</span>
-                @endif
-
-                <span class="min-w-0 leading-tight">
-                    <span class="brand-name">{{ $appLocale === 'en' ? $companyNameEn : $companyNameAr }}</span>
-                    <span class="brand-tagline">{{ $tagline }}</span>
-                </span>
-            </a>
-
-            <nav class="main-nav hidden md:flex" aria-label="Main navigation">
-                @foreach($headerMenuTree as $item)
-                    @php
-                        $hasChildren = isset($item->children) && $item->children->count() > 0;
-                        $href = $itemUrl($item);
-                    @endphp
-
-                    @if($hasChildren)
-                        <div class="nav-item group relative">
-                            <button type="button" class="nav-link">
-                                {{ $itemTitle($item) }}
-                                <span class="nav-caret">▾</span>
-                            </button>
-
-                            <div class="dropdown-wrap absolute {{ $isRtl ? 'right-0' : 'left-0' }} top-full z-50 w-72 opacity-0 invisible transition group-hover:visible group-hover:opacity-100">
-                                <div class="dropdown-panel">
-                                    @foreach($item->children as $child)
-                                        <a href="{{ $itemUrl($child) }}"{!! $itemTarget($child) !!} class="dropdown-link">
-                                            {{ $itemTitle($child) }}
-                                        </a>
-                                    @endforeach
-                                </div>
-                            </div>
+<header class="nav-header header-style7">
+    <div class="sticky-wrapper">
+        <div class="main-wrapper">
+            <div class="menu-area">
+                <div class="row align-items-center justify-content-between">
+                    <div class="col-auto logo">
+                        <div class="header-logo">
+                            <a href="{{ route('website.home', ['lang' => $appLocale]) }}"><img alt="{{ $companyName }}" src="{{ $logoUrl }}"></a>
                         </div>
-                    @else
-                        <a href="{{ $href }}"{!! $itemTarget($item) !!} class="nav-link">
-                            {{ $itemTitle($item) }}
-                        </a>
-                    @endif
-                @endforeach
-            </nav>
-
-            <div class="flex items-center gap-3">
-                <a href="{{ $ctaUrl }}" class="header-cta hidden sm:inline-flex">
-                    {{ $ctaLabel }}
-                </a>
-
-                <button type="button" onclick="document.getElementById('mobileMenu').classList.toggle('hidden')" class="mobile-menu-button md:hidden" aria-label="Open menu">
-                    ☰
-                </button>
-            </div>
-        </div>
-
-        <div id="mobileMenu" class="hidden pb-4 md:hidden">
-            <div class="mobile-menu-panel">
-                @foreach($headerMenuTree as $item)
-                    @php
-                        $hasChildren = isset($item->children) && $item->children->count() > 0;
-                    @endphp
-
-                    @if($hasChildren)
-                        <details class="mobile-details">
-                            <summary class="mobile-summary">{{ $itemTitle($item) }}</summary>
-                            <div class="px-2 pb-2">
-                                @foreach($item->children as $child)
-                                    <a href="{{ $itemUrl($child) }}"{!! $itemTarget($child) !!} class="mobile-link">
-                                        {{ $itemTitle($child) }}
-                                    </a>
+                    </div>
+                    <div class="col-auto nav-menu">
+                        <nav class="main-menu d-none d-lg-inline-block lh-1">
+                            <ul class="navigation">
+                                @foreach($headerMenuTree as $item)
+                                    @php $hasChildren = isset($item->children) && $item->children->count() > 0; @endphp
+                                    <li class="{{ $hasChildren ? 'menu-item-has-children' : '' }}">
+                                        <a href="{{ $hasChildren ? '#' : $itemUrl($item) }}"{!! $hasChildren ? '' : $itemTarget($item) !!}>{{ $itemTitle($item) }}</a>
+                                        @if($hasChildren)
+                                            <ul class="sub-menu">
+                                                @foreach($item->children as $child)
+                                                    <li><a href="{{ $itemUrl($child) }}"{!! $itemTarget($child) !!}>{{ $itemTitle($child) }}</a></li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
+                                    </li>
                                 @endforeach
-                            </div>
-                        </details>
-                    @else
-                        <a href="{{ $itemUrl($item) }}"{!! $itemTarget($item) !!} class="mobile-link">
-                            {{ $itemTitle($item) }}
-                        </a>
-                    @endif
-                @endforeach
-
-                <a href="{{ $ctaUrl }}" class="mobile-cta">
-                    {{ $ctaLabel }}
-                </a>
+                            </ul>
+                        </nav>
+                        <div class="navbar-right d-inline-flex d-lg-none">
+                            <button class="menu-toggle sidebar-btn" type="button">
+                                <span class="line"></span><span class="line"></span><span class="line"></span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-auto header-right-wrapper">
+                        <div class="header-right">
+                            <button class="search-btn"><span class="icon"><i class="fa-solid fa-magnifying-glass"></i></span></button>
+                            <a href="{{ $ctaUrl }}" class="theme-btn bg-theme">
+                                <span class="link-effect"><span class="effect-1">{{ $ctaLabel }}</span><span class="effect-1">{{ $ctaLabel }}</span></span>
+                                <i class="fa-regular fa-arrow-right-long"></i>
+                            </a>
+                            <div class="sidebar-icon"><button class="sidebar-tab open"><img src="{{ asset('assets/images/icons/hm6-dot_icon.png') }}" alt=""></button></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </header>
+
+<div class="mobile-menu-wrapper">
+    <div class="mobile-menu-area">
+        <button class="menu-toggle"><i class="fas fa-times"></i></button>
+        <div class="mobile-logo"><a href="{{ route('website.home', ['lang' => $appLocale]) }}"><img alt="{{ $companyName }}" src="{{ $logoUrl }}"></a></div>
+        <div class="mobile-menu">
+            <ul class="navigation clearfix">
+                @foreach($headerMenuTree as $item)
+                    @php $hasChildren = isset($item->children) && $item->children->count() > 0; @endphp
+                    <li class="{{ $hasChildren ? 'menu-item-has-children' : '' }}">
+                        <a href="{{ $hasChildren ? '#' : $itemUrl($item) }}"{!! $hasChildren ? '' : $itemTarget($item) !!}>{{ $itemTitle($item) }}</a>
+                        @if($hasChildren)
+                            <ul class="sub-menu">
+                                @foreach($item->children as $child)
+                                    <li><a href="{{ $itemUrl($child) }}"{!! $itemTarget($child) !!}>{{ $itemTitle($child) }}</a></li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+        <div class="sidebar-wrap"><h6>{{ $address }}</h6></div>
+        <div class="sidebar-wrap">
+            @if($topPhone)<h6><a href="tel:{{ preg_replace('/\s+/', '', $topPhone) }}">{{ $topPhone }}</a></h6>@endif
+            @if($topEmail)<h6><a href="mailto:{{ $topEmail }}">{{ $topEmail }}</a></h6>@endif
+        </div>
+        @if($social->count())
+            <div class="social-btn style3">
+                @foreach($social as $key => $url)
+                    <a href="{{ $url }}" target="_blank" rel="noopener noreferrer"><span class="link-effect"><span class="effect-1"><i class="{{ $socialIcons[$key] ?? 'fab fa-share-alt' }}"></i></span><span class="effect-1"><i class="{{ $socialIcons[$key] ?? 'fab fa-share-alt' }}"></i></span></span></a>
+                @endforeach
+            </div>
+        @endif
+    </div>
+</div>
+
+<div class="sticky-header">
+    <div class="container">
+        <div class="menu-area">
+            <div class="row align-items-center justify-content-between">
+                <div class="col-auto logo"><div class="header-logo"><a href="{{ route('website.home', ['lang' => $appLocale]) }}"><img alt="{{ $companyName }}" src="{{ $logoUrl }}"></a></div></div>
+                <div class="col-auto nav-menu">
+                    <nav class="main-menu d-none d-lg-inline-block">
+                        <ul class="navigation clearfix">
+                            @foreach($headerMenuTree as $item)
+                                @php $hasChildren = isset($item->children) && $item->children->count() > 0; @endphp
+                                <li class="{{ $hasChildren ? 'menu-item-has-children' : '' }}">
+                                    <a href="{{ $hasChildren ? '#' : $itemUrl($item) }}"{!! $hasChildren ? '' : $itemTarget($item) !!}>{{ $itemTitle($item) }}</a>
+                                    @if($hasChildren)
+                                        <ul class="sub-menu">
+                                            @foreach($item->children as $child)
+                                                <li><a href="{{ $itemUrl($child) }}"{!! $itemTarget($child) !!}>{{ $itemTitle($child) }}</a></li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    </nav>
+                    <div class="navbar-right d-inline-flex d-lg-none"><button class="menu-toggle sidebar-btn" type="button"><span class="line"></span><span class="line"></span><span class="line"></span></button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="search-popup">
+    <button class="close-search"><i class="fa-solid fa-xmark"></i></button>
+    <form method="get" action="{{ route('website.services') }}">
+        <input type="hidden" name="lang" value="{{ $appLocale }}">
+        <div class="form-group">
+            <input id="search" type="search" name="search" placeholder="{{ $appLocale === 'en' ? 'Search...' : 'ابحث هنا...' }}" required>
+            <button type="submit"><i class="fa fa-search"></i></button>
+        </div>
+    </form>
+</div>
+
+<div id="sidebar-area" class="sidebar">
+    <button class="sidebar-close-btn">
+        <svg class="icon-close" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="16px" height="12.7px" viewBox="0 0 16 12.7" xml:space="preserve"><g><rect x="0" y="5.4" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -2.1569 7.5208)" width="16" height="2"></rect><rect x="0" y="5.4" transform="matrix(0.7071 0.7071 -0.7071 0.7071 6.8431 -3.7929)" width="16" height="2"></rect></g></svg>
+    </button>
+    <div class="sidebar-content">
+        <div class="sidebar-logo"><a class="dark-logo" href="{{ route('website.home', ['lang' => $appLocale]) }}"><img src="{{ $logoUrl }}" alt="{{ $companyName }}"></a></div>
+        <div class="sidebar-menu-wrap"></div>
+        <div class="sidebar-about">
+            <div class="sidebar-header"><h3>{{ $appLocale === 'en' ? 'About Us' : 'من نحن' }}</h3></div>
+            <p>{{ $aboutShort }}</p>
+            <a href="{{ route('website.contact', ['lang' => $appLocale]) }}" class="theme-btn"><span class="link-effect"><span class="effect-1">{{ $appLocale === 'en' ? 'Contact Us' : 'تواصل معنا' }}</span><span class="effect-1">{{ $appLocale === 'en' ? 'Contact Us' : 'تواصل معنا' }}</span></span></a>
+        </div>
+        <div class="sidebar-contact">
+            <div class="sidebar-header"><h3>{{ $appLocale === 'en' ? 'Contact Us' : 'بيانات التواصل' }}</h3></div>
+            <ul class="contact-info">
+                <li><i class="fas fa-map-marker-alt"></i><p>{{ $address }}</p></li>
+                @if($topPhone)<li><i class="fas fa-phone"></i><a href="tel:{{ preg_replace('/\s+/', '', $topPhone) }}">{{ $topPhone }}</a></li>@endif
+                @if($topEmail)<li><i class="fas fa-envelope-open-text"></i><a href="mailto:{{ $topEmail }}">{{ $topEmail }}</a></li>@endif
+            </ul>
+        </div>
+        @if($social->count())
+            <ul class="sidebar-social">
+                @foreach($social as $key => $url)
+                    <li class="{{ $key }}"><a href="{{ $url }}"><i class="{{ $socialIcons[$key] ?? 'fab fa-share-alt' }}"></i></a></li>
+                @endforeach
+            </ul>
+        @endif
+    </div>
+</div>

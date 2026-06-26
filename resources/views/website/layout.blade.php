@@ -1,8 +1,4 @@
-@php
-    // ✅ 0) Normalize site settings source (Model or array)
-    // Priority:
-    // 1) $siteSettings from WebsiteLayoutComposer
-    // 2) $settings legacy variable if exists
+﻿@php
     if (!isset($siteSettings) || empty($siteSettings)) {
         if (isset($settings) && $settings) {
             $siteSettings = is_array($settings) ? $settings : $settings->toArray();
@@ -11,44 +7,28 @@
         }
     }
 
-    // ===== Locale =====
-    $appLocale = $appLocale ?? ($locale ?? request()->query('lang', 'ar'));
+    $appLocale = $appLocale ?? request()->query('lang', 'ar');
     $appLocale = strtolower((string) $appLocale) === 'en' ? 'en' : 'ar';
-    $isRtl = ($isRtl ?? ($appLocale === 'ar'));
-
-    // ✅ IMPORTANT: sync Laravel locale with query lang
+    $isRtl = $appLocale === 'ar';
     app()->setLocale($appLocale);
 
-    // Safe settings getter from array
     $ss = fn ($key, $default = null) => data_get($siteSettings, $key, $default);
-
-    // SEO defaults
     $defaultTitle = $appLocale === 'en'
-        ? ($ss('meta_title_en', $ss('company_name_en', $ss('site_name_en', 'Thiqah I-Tech'))))
-        : ($ss('meta_title_ar', $ss('company_name', $ss('site_name', 'ثقة لتقنية نظم المعلومات'))));
-
+        ? ($ss('meta_title_en', $ss('company_name_en', 'Thiqah I-Tech')))
+        : ($ss('meta_title_ar', $ss('company_name', 'ثقة لتقنية نظم المعلومات')));
     $defaultDesc = $appLocale === 'en'
-        ? ((string) $ss('meta_description_en', ''))
-        : ((string) $ss('meta_description_ar', ''));
+        ? (string) $ss('meta_description_en', '')
+        : (string) $ss('meta_description_ar', '');
 
-    $pageTitle = trim((string)($__env->yieldContent('title'))) ?: $defaultTitle;
-    $pageDesc  = trim((string)($__env->yieldContent('meta_description'))) ?: $defaultDesc;
+    $pageTitle = trim((string) $__env->yieldContent('title')) ?: $defaultTitle;
+    $pageDesc = trim((string) $__env->yieldContent('meta_description')) ?: $defaultDesc;
 
-    $switchToArUrl = $switchToArUrl ?? (url()->current() . '?lang=ar');
-    $switchToEnUrl = $switchToEnUrl ?? (url()->current() . '?lang=en');
-
-    // ✅ Favicon: supports full URL or storage path or raw filename
     $faviconRaw = (string) ($ss('favicon') ?? '');
-    $faviconUrl = null;
-
+    $faviconUrl = asset('assets/images/favicons/favicon.png');
     if ($faviconRaw !== '') {
-        if (str_starts_with($faviconRaw, 'http://') || str_starts_with($faviconRaw, 'https://')) {
-            $faviconUrl = $faviconRaw;
-        } else {
-            $faviconRaw = ltrim($faviconRaw, '/');
-            $faviconRaw = preg_replace('#^storage/#', '', $faviconRaw); // remove leading "storage/"
-            $faviconUrl = asset('storage/' . $faviconRaw);
-        }
+        $faviconUrl = str_starts_with($faviconRaw, 'http')
+            ? $faviconRaw
+            : asset('storage/' . ltrim(preg_replace('#^storage/#', '', $faviconRaw), '/'));
     }
 
     $shouldUseViteDevServer = false;
@@ -60,7 +40,6 @@
         $hotUrl = trim((string) file_get_contents($hotFile));
         $host = parse_url($hotUrl, PHP_URL_HOST);
         $port = (int) (parse_url($hotUrl, PHP_URL_PORT) ?: 5173);
-
         if ($host) {
             $connection = @fsockopen($host, $port, $errno, $errstr, 0.3);
             if (is_resource($connection)) {
@@ -74,28 +53,34 @@
         $manifest = json_decode((string) file_get_contents($manifestFile), true) ?: [];
     }
 @endphp
-
-<!doctype html>
-<html lang="{{ $appLocale }}" dir="{{ $isRtl ? 'rtl' : 'ltr' }}">
+<!DOCTYPE html>
+<html class="no-js" lang="{{ $appLocale }}" dir="{{ $isRtl ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
     <title>{{ $pageTitle }}</title>
-
-    @if(!empty($pageDesc))
+    @if($pageDesc !== '')
         <meta name="description" content="{{ $pageDesc }}">
     @endif
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="icon" href="{{ $faviconUrl }}" sizes="32x32" type="image/png">
+    <meta name="theme-color" content="#ffffff">
 
-    @if(!empty($faviconUrl))
-        <link rel="icon" href="{{ $faviconUrl }}">
-    @else
-        <link rel="icon" href="data:,">
-    @endif
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Cairo:wght@200..1000&display=swap" rel="stylesheet">
 
-    @yield('extra_head')
+    <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/flaticon.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/fontawesome/css/fontawesome.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/fancybox.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/swiper-bundle.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/animate.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/select2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/jquery-ui.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/odometer.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
 
-    {{-- ✅ Keep Vite ONLY here --}}
     @if($shouldUseViteDevServer)
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @else
@@ -106,19 +91,265 @@
             <script type="module" src="{{ asset('build/' . $manifest['resources/js/app.js']['file']) }}"></script>
         @endif
     @endif
+
+    <style>
+        body,
+        body * {
+            font-family: {{ $isRtl ? "'Cairo', sans-serif" : "'Inter', sans-serif" }};
+        }
+        .rtl-fix .title-area,
+        .rtl-fix .hero-content,
+        .rtl-fix .about-content-wrapper,
+        .rtl-fix .thiqah-breadcrumb,
+        .rtl-fix .thiqah-card,
+        .rtl-fix .footer-widget,
+        .rtl-fix .newsletter,
+        .rtl-fix .service-single-item .item-right-inner,
+        .rtl-fix .contact-option,
+        .rtl-fix .social-option {
+            text-align: right;
+        }
+        .rtl-fix .header-right,
+        .rtl-fix .footer-policy,
+        .rtl-fix .contact-option,
+        .rtl-fix .social-option {
+            direction: rtl;
+        }
+        .thiqah-section {
+            padding: 120px 0;
+        }
+        .thiqah-card {
+            background: #fff;
+            border: 1px solid rgba(19, 28, 51, 0.08);
+            border-radius: 24px;
+            padding: 36px;
+            box-shadow: 0 20px 60px rgba(16, 24, 40, 0.08);
+        }
+        .thiqah-form-control,
+        .thiqah-form-textarea {
+            width: 100%;
+            border: 1px solid #d9dde7;
+            border-radius: 16px;
+            background: #fff;
+            color: #101828;
+            padding: 15px 18px;
+        }
+        .thiqah-form-control:focus,
+        .thiqah-form-textarea:focus {
+            outline: none;
+            border-color: #ff9800;
+            box-shadow: 0 0 0 4px rgba(255, 152, 0, 0.12);
+        }
+        .thiqah-form-textarea {
+            min-height: 180px;
+            resize: vertical;
+        }
+        .thiqah-breadcrumb {
+            color: rgba(255,255,255,.75);
+            margin-bottom: 14px;
+        }
+        .thiqah-breadcrumb a {
+            color: #fff;
+        }
+        .thiqah-breadcrumb span {
+            color: #ff9800;
+        }
+        .thiqah-richtext,
+        .thiqah-richtext p,
+        .thiqah-richtext li {
+            color: #5c6574;
+            line-height: 1.9;
+        }
+        .thiqah-richtext h2,
+        .thiqah-richtext h3,
+        .thiqah-richtext h4 {
+            color: #101828;
+            margin-bottom: 16px;
+        }
+        .thiqah-richtext ul,
+        .thiqah-richtext ol {
+            padding-{{ $isRtl ? 'right' : 'left' }}: 24px;
+        }
+        .footer-section .newsletter,
+        .footer-section .footer-widget,
+        .footer-section .brand-header,
+        .footer-section .footer-bottom,
+        .footer-section .footer-policy {
+            text-align: {{ $isRtl ? 'right' : 'left' }};
+        }
+        .footer-section .newsletter {
+            direction: {{ $isRtl ? 'rtl' : 'ltr' }};
+        }
+        .footer-section .footer-top {
+            font-size: 16px;
+        }
+        .footer-section .footer-widget .title {
+            font-size: 30px;
+            line-height: 1.3;
+            font-weight: 700;
+            margin-bottom: 22px;
+        }
+        .footer-section .brand-header .text,
+        .footer-section .footer-widget .text,
+        .footer-section .list-unstyled li a,
+        .footer-section .notify,
+        .footer-section .footer-bottom p,
+        .footer-section .footer-policy a {
+            font-size: 18px;
+            line-height: 1.9;
+        }
+        .footer-section .list-unstyled li {
+            margin-bottom: 8px;
+        }
+        .footer-section .contact-info .email-details a {
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .footer-section .contact-info .email-details p,
+        .footer-section .newsletter .text h3 {
+            font-size: 20px;
+            line-height: 1.6;
+        }
+        .footer-section .footer-social .social-link {
+            font-size: 15px;
+            font-weight: 700;
+        }
+        .footer-section .notify {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .hero-slider-6 .hero-right,
+        .hero-slider-6 .col-lg-5,
+        .hero-slider-6 .hero-slide-image-box {
+            height: 100%;
+            min-height: 680px;
+        }
+        .hero-slider-6 .swiper-slide .row {
+            min-height: 680px;
+        }
+        .hero-slider-6 .hero-right {
+            display: flex;
+            align-items: stretch;
+        }
+        .hero-slider-6 .hero-slide-image-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            display: block;
+        }
+        .hero-slider-6 .hero-slide-image-box {
+            width: 100%;
+            overflow: hidden;
+            border-radius: 24px;
+        }
+        .hero-slider-6 .hero-content .title,
+        .hero-slider-6 .hero-content p,
+        .hero-slider-6 .scroll-me {
+            font-family: {{ $isRtl ? "'Cairo', sans-serif" : "'Inter', sans-serif" }};
+        }
+        @media (max-width: 991px) {
+            .thiqah-section {
+                padding: 90px 0;
+            }
+            .hero-slider-6 .hero-right,
+            .hero-slider-6 .col-lg-5,
+            .hero-slider-6 .hero-slide-image-box {
+                min-height: 460px;
+            }
+            .hero-slider-6 .swiper-slide .row {
+                min-height: 460px;
+            }
+            .footer-section .footer-widget .title {
+                font-size: 24px;
+            }
+            .footer-section .brand-header .text,
+            .footer-section .footer-widget .text,
+            .footer-section .list-unstyled li a,
+            .footer-section .notify,
+            .footer-section .footer-bottom p,
+            .footer-section .footer-policy a {
+                font-size: 16px;
+            }
+        }
+        @media (max-width: 767px) {
+            .thiqah-card {
+                padding: 24px;
+                border-radius: 20px;
+            }
+            .hero-slider-6 .hero-right,
+            .hero-slider-6 .col-lg-5,
+            .hero-slider-6 .hero-slide-image-box {
+                min-height: 320px;
+            }
+            .hero-slider-6 .swiper-slide .row {
+                min-height: 320px;
+            }
+            .footer-section .contact-info .email-details a {
+                font-size: 18px;
+            }
+            .footer-section .contact-info .email-details p,
+            .footer-section .newsletter .text h3 {
+                font-size: 17px;
+            }
+        }
+    </style>
+
+    @yield('extra_head')
 </head>
+<body id="body" class="bg-theme3 {{ $isRtl ? 'rtl-fix' : '' }}">
+    <div class="page-wrapper bg-theme3 overflow-visible">
+        <div class="loading-screen" id="loading-screen">
+            <div class="preloader-close">x</div>
+            <div class="animation-preloader">
+                <div class="txt-loading">
+                    <span data-text-preloader="T" class="letters-loading">T</span>
+                    <span data-text-preloader="H" class="letters-loading">H</span>
+                    <span data-text-preloader="I" class="letters-loading">I</span>
+                    <span data-text-preloader="Q" class="letters-loading">Q</span>
+                    <span data-text-preloader="A" class="letters-loading">A</span>
+                </div>
+            </div>
+        </div>
 
-<body class="min-h-screen bg-slate-50 text-slate-900">
+        @include('website.partials.header')
+        <main>@yield('content')</main>
+        @include('website.partials.footer')
+    </div>
 
-{{-- ✅ Header comes from website.partials.header and gets its data from WebsiteLayoutComposer --}}
-@include('website.partials.header')
+    <div class="scrollToTop active-progress">
+        <div class="arrowUp"><i class="fa-light fa-arrow-up"></i></div>
+        <div class="water">
+            <svg viewBox="0 0 560 20" class="water_wave water_wave_back"><use xlink:href="#wave"></use></svg>
+            <svg viewBox="0 0 560 20" class="water_wave water_wave_front"><use xlink:href="#wave"></use></svg>
+            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 20" style="display:none;">
+                <symbol id="wave">
+                    <path d="M420,20c21.5-0.4,38.8-2.5,51.1-4.5c13.4-2.2,26.5-5.2,27.3-5.4C514,6.5,518,4.7,528.5,2.7c7.1-1.3,17.9-2.8,31.5-2.7v20H420z" fill="#ff9800"></path>
+                    <path d="M420,20c-21.5-0.4-38.8-2.5-51.1-4.5c-13.4-2.2-26.5-5.2-27.3-5.4C326,6.5,322,4.7,311.5,2.7C304.3,1.4,293.6-0.1,280,0v20H420z" fill="#ffb300"></path>
+                    <path d="M140,20c21.5-0.4,38.8-2.5,51.1-4.5c13.4-2.2,26.5-5.2,27.3-5.4C234,6.5,238,4.7,248.5,2.7c7.1-1.3,17.9-2.8,31.5-2.7v20H140z" fill="#ff9800"></path>
+                    <path d="M140,20c-21.5-0.4-38.8-2.5-51.1-4.5c-13.4-2.2-26.5-5.2-27.3-5.4C46,6.5,42,4.7,31.5,2.7C24.3,1.4,13.6-0.1,0,0v20H140z" fill="#ffb300"></path>
+                </symbol>
+            </svg>
+        </div>
+    </div>
 
-<main>
-    @yield('content')
-</main>
-
-{{-- ✅ Footer comes from website.partials.footer and gets its data from WebsiteLayoutComposer --}}
-@include('website.partials.footer')
-
+    <script src="{{ asset('assets/js/vendor/jquery.min.js') }}"></script>
+    <script src="{{ asset('assets/js/bootstrap.min.js') }}"></script>
+    <script src="{{ asset('assets/js/swiper-bundle.min.js') }}"></script>
+    <script src="{{ asset('assets/js/marquee.min.js') }}"></script>
+    <script src="{{ asset('assets/js/jquery.fancybox.js') }}"></script>
+    <script src="{{ asset('assets/js/select2.min.js') }}"></script>
+    <script src="{{ asset('assets/js/jquery-ui.min.js') }}"></script>
+    <script src="{{ asset('assets/js/jquery.validate.min.js') }}"></script>
+    <script src="{{ asset('assets/js/jquery.appear.js') }}"></script>
+    <script src="{{ asset('assets/js/jquery.odometer.min.js') }}"></script>
+    <script src="{{ asset('assets/js/wow.min.js') }}"></script>
+    <script src="{{ asset('assets/js/imagesloaded.pkgd.min.js') }}"></script>
+    <script src="{{ asset('assets/js/isotope.pkgd.min.js') }}"></script>
+    <script src="{{ asset('assets/js/lenis.min.js') }}"></script>
+    <script src="{{ asset('assets/js/splite-type.min.js') }}"></script>
+    <script src="{{ asset('assets/js/vanilla-tilt.min.js') }}"></script>
+    <script src="{{ asset('assets/js/main.js') }}"></script>
 </body>
 </html>
