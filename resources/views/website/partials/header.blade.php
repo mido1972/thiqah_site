@@ -24,8 +24,9 @@
     $companyName = $appLocale === 'en' ? ($companyNameEn ?? data_get($siteSettings ?? [], 'company_name_en', 'Thiqah')) : ($companyNameAr ?? data_get($siteSettings ?? [], 'company_name', 'ثقة'));
     $companyLogo = $companyLogo ?? data_get($siteSettings ?? [], 'company_logo') ?? data_get($siteSettings ?? [], 'logo');
     $logoUrl = $companyLogo ? (str_starts_with($companyLogo, 'http') ? $companyLogo : asset('storage/' . ltrim(preg_replace('#^storage/#', '', $companyLogo), '/'))) : asset('assets/images/logo/logo-2.png');
+    $logoStickyUrl = $companyLogo ? $logoUrl : asset('assets/images/logo/logo.png');
     $ctaLabel = $ctaLabel ?? ($appLocale === 'en' ? 'Get a Quote' : 'اطلب عرض سعر');
-    $ctaUrl = ($ctaUrl ?? route('website.contact')) . '?lang=' . $appLocale;
+    $ctaUrl = $ctaUrl ?? route('website.contact', ['lang' => $appLocale]);
     $address = $appLocale === 'en' ? (data_get($siteSettings ?? [], 'address_en') ?: data_get($siteSettings ?? [], 'address') ?: 'Cairo, Egypt') : (data_get($siteSettings ?? [], 'address') ?: data_get($siteSettings ?? [], 'address_en') ?: 'القاهرة، مصر');
     $aboutShort = $appLocale === 'en' ? (data_get($siteSettings ?? [], 'about_short_en') ?: 'Integrated ERP, HR and contracting systems for growing businesses.') : (data_get($siteSettings ?? [], 'about_short') ?: 'حلول متكاملة لإدارة ERP والموارد البشرية والمقاولات للشركات الطموحة.');
     $topPhone = $topPhone ?? $companyPhone ?? null;
@@ -43,14 +44,17 @@
     ];
 @endphp
 
-<header class="nav-header header-style7">
+<header class="nav-header header-style7 thiqah-site-header">
     <div class="sticky-wrapper">
         <div class="main-wrapper">
             <div class="menu-area">
-                <div class="row align-items-center justify-content-between">
+                <div class="row align-items-center justify-content-between thiqah-preserve-layout">
                     <div class="col-auto logo">
                         <div class="header-logo">
-                            <a href="{{ route('website.home', ['lang' => $appLocale]) }}"><img alt="{{ $companyName }}" src="{{ $logoUrl }}"></a>
+                            <a href="{{ route('website.home', ['lang' => $appLocale]) }}">
+                                <img alt="{{ $companyName }}" src="{{ $logoUrl }}">
+                                <img alt="{{ $companyName }}" src="{{ $logoStickyUrl }}">
+                            </a>
                         </div>
                     </div>
                     <div class="col-auto nav-menu">
@@ -79,6 +83,10 @@
                     </div>
                     <div class="col-auto header-right-wrapper">
                         <div class="header-right">
+                            <div class="lang-switcher" aria-label="{{ $appLocale === 'en' ? 'Language switcher' : 'تبديل اللغة' }}">
+                                <a href="{{ $switchToEnUrl }}" class="{{ $appLocale === 'en' ? 'active' : '' }}">EN</a>
+                                <a href="{{ $switchToArUrl }}" class="{{ $appLocale === 'ar' ? 'active' : '' }}">AR</a>
+                            </div>
                             <button class="search-btn"><span class="icon"><i class="fa-solid fa-magnifying-glass"></i></span></button>
                             <a href="{{ $ctaUrl }}" class="theme-btn bg-theme">
                                 <span class="link-effect"><span class="effect-1">{{ $ctaLabel }}</span><span class="effect-1">{{ $ctaLabel }}</span></span>
@@ -114,6 +122,10 @@
                 @endforeach
             </ul>
         </div>
+        <div class="mobile-lang-switcher">
+            <a href="{{ $switchToEnUrl }}" class="{{ $appLocale === 'en' ? 'active' : '' }}">English</a>
+            <a href="{{ $switchToArUrl }}" class="{{ $appLocale === 'ar' ? 'active' : '' }}">العربية</a>
+        </div>
         <div class="sidebar-wrap"><h6>{{ $address }}</h6></div>
         <div class="sidebar-wrap">
             @if($topPhone)<h6><a href="tel:{{ preg_replace('/\s+/', '', $topPhone) }}">{{ $topPhone }}</a></h6>@endif
@@ -132,8 +144,8 @@
 <div class="sticky-header">
     <div class="container">
         <div class="menu-area">
-            <div class="row align-items-center justify-content-between">
-                <div class="col-auto logo"><div class="header-logo"><a href="{{ route('website.home', ['lang' => $appLocale]) }}"><img alt="{{ $companyName }}" src="{{ $logoUrl }}"></a></div></div>
+            <div class="row align-items-center justify-content-between thiqah-preserve-layout">
+                <div class="col-auto logo"><div class="header-logo"><a href="{{ route('website.home', ['lang' => $appLocale]) }}"><img alt="{{ $companyName }}" src="{{ $logoUrl }}"><img alt="{{ $companyName }}" src="{{ $logoStickyUrl }}"></a></div></div>
                 <div class="col-auto nav-menu">
                     <nav class="main-menu d-none d-lg-inline-block">
                         <ul class="navigation clearfix">
@@ -153,6 +165,14 @@
                         </ul>
                     </nav>
                     <div class="navbar-right d-inline-flex d-lg-none"><button class="menu-toggle sidebar-btn" type="button"><span class="line"></span><span class="line"></span><span class="line"></span></button></div>
+                </div>
+                <div class="col-auto header-right-wrapper d-none d-lg-flex">
+                    <div class="header-right">
+                        <div class="lang-switcher" aria-label="{{ $appLocale === 'en' ? 'Language switcher' : 'تبديل اللغة' }}">
+                            <a href="{{ $switchToEnUrl }}" class="{{ $appLocale === 'en' ? 'active' : '' }}">EN</a>
+                            <a href="{{ $switchToArUrl }}" class="{{ $appLocale === 'ar' ? 'active' : '' }}">AR</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

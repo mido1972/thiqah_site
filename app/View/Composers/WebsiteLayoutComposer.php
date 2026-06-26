@@ -2,9 +2,9 @@
 
 namespace App\View\Composers;
 
+use App\Models\HeroSlider;
 use App\Models\Menu;
 use App\Models\Page;
-use App\Models\HeroSlider;
 use App\Support\Settings;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
@@ -26,8 +26,8 @@ class WebsiteLayoutComposer
         $companyNameEn = $row['company_name_en'] ?? 'Thiqah';
 
         $companyAddress = $row['address'] ?? $row['company_address'] ?? null;
-        $companyPhone   = $row['phone'] ?? $row['company_phone'] ?? null;
-        $companyEmail   = $row['email'] ?? $row['company_email'] ?? null;
+        $companyPhone = $row['phone'] ?? $row['company_phone'] ?? null;
+        $companyEmail = $row['email'] ?? $row['company_email'] ?? null;
 
         $logo = $row['company_logo'] ?? $row['logo'] ?? $row['logo_path'] ?? null;
 
@@ -36,13 +36,13 @@ class WebsiteLayoutComposer
          ========================================================= */
 
         $socialLinks = [
-            'facebook'  => $row['facebook']  ?? null,
-            'linkedin'  => $row['linkedin']  ?? null,
+            'facebook' => $row['facebook'] ?? null,
+            'linkedin' => $row['linkedin'] ?? null,
             'instagram' => $row['instagram'] ?? null,
-            'twitter'   => $row['twitter']   ?? $row['x'] ?? null,
-            'youtube'   => $row['youtube']   ?? null,
-            'tiktok'    => $row['tiktok']    ?? null,
-            'whatsapp'  => $row['whatsapp']  ?? null,
+            'twitter' => $row['twitter'] ?? $row['x'] ?? null,
+            'youtube' => $row['youtube'] ?? null,
+            'tiktok' => $row['tiktok'] ?? null,
+            'whatsapp' => $row['whatsapp'] ?? null,
         ];
 
         $hasSocial = collect($socialLinks)->filter()->isNotEmpty();
@@ -73,7 +73,7 @@ class WebsiteLayoutComposer
         try {
             if (method_exists(Page::class, 'scopeHeader')) {
                 $headerPages = Page::query()->header()->get();
-            } elseif (Schema::hasColumn((new Page)->getTable(), 'show_in_header')) {
+            } elseif (Schema::hasColumn((new Page())->getTable(), 'show_in_header')) {
                 $headerPages = Page::query()
                     ->where('show_in_header', 1)
                     ->orderBy('sort_order')
@@ -82,7 +82,7 @@ class WebsiteLayoutComposer
 
             if (method_exists(Page::class, 'scopeFooter')) {
                 $footerPages = Page::query()->footer()->get();
-            } elseif (Schema::hasColumn((new Page)->getTable(), 'show_in_footer')) {
+            } elseif (Schema::hasColumn((new Page())->getTable(), 'show_in_footer')) {
                 $footerPages = Page::query()
                     ->where('show_in_footer', 1)
                     ->orderBy('sort_order')
@@ -113,7 +113,7 @@ class WebsiteLayoutComposer
                     ->orderBy('order')
                     ->get();
 
-                $parents  = $items->whereNull('parent_id')->values();
+                $parents = $items->whereNull('parent_id')->values();
                 $children = $items->whereNotNull('parent_id')->groupBy('parent_id');
 
                 $headerMenuTree = $parents->map(function ($parent) use ($children) {
@@ -126,7 +126,7 @@ class WebsiteLayoutComposer
         }
 
         /* =========================================================
-         |  ✅ Hero Slider (Home)
+         |  Hero Slider (Home)
          ========================================================= */
 
         $heroSlider = null;
@@ -138,8 +138,8 @@ class WebsiteLayoutComposer
                 ->with([
                     'slides' => function ($q) {
                         $q->where('is_active', 1)
-                          ->orderBy('order');
-                    }
+                            ->orderBy('order');
+                    },
                 ])
                 ->first();
         } catch (\Throwable $e) {
@@ -150,7 +150,7 @@ class WebsiteLayoutComposer
          |  Language Switch
          ========================================================= */
 
-        $baseQuery     = request()->query();
+        $baseQuery = request()->query();
         $switchToArUrl = request()->url() . '?' . http_build_query(array_merge($baseQuery, ['lang' => 'ar']));
         $switchToEnUrl = request()->url() . '?' . http_build_query(array_merge($baseQuery, ['lang' => 'en']));
 
@@ -159,48 +159,29 @@ class WebsiteLayoutComposer
          ========================================================= */
 
         $view->with([
-            // Settings
-            'siteSettings'     => $row,
-            'appLocale'        => $appLocale,
-
-            // Company
-            'companyNameAr'    => $companyNameAr,
-            'companyNameEn'    => $companyNameEn,
-            'companyPhone'     => $companyPhone,
-            'companyEmail'     => $companyEmail,
-            'companyLogo'      => $logo,
-            'companyAddress'   => $companyAddress,
-
-            // SEO
+            'siteSettings' => $row,
+            'appLocale' => $appLocale,
+            'companyNameAr' => $companyNameAr,
+            'companyNameEn' => $companyNameEn,
+            'companyPhone' => $companyPhone,
+            'companyEmail' => $companyEmail,
+            'companyLogo' => $logo,
+            'companyAddress' => $companyAddress,
             'defaultMetaTitle' => $defaultMetaTitle,
-            'defaultMetaDesc'  => $defaultMetaDesc,
-            'defaultMetaKeys'  => $defaultMetaKeys,
-
-            // Pages
-            'headerPages'      => $headerPages,
-            'footerPages'      => $footerPages,
-
-            // Header Menu
-            'headerMenuTree'   => $headerMenuTree,
-
-            // TopBar
-            'topPhone'         => $companyPhone,
-            'topEmail'         => $companyEmail,
-
-            // CTA
-            'ctaLabel'         => $appLocale === 'en' ? 'Get a Quote' : 'اطلب عرض سعر',
-            'ctaUrl'           => url('/contact'),
-
-            // Social
-            'socialLinks'      => $socialLinks,
-            'hasSocial'        => $hasSocial,
-
-            // Language switch
-            'switchToArUrl'    => $switchToArUrl,
-            'switchToEnUrl'    => $switchToEnUrl,
-
-            // ✅ Hero Slider
-            'heroSlider'       => $heroSlider,
+            'defaultMetaDesc' => $defaultMetaDesc,
+            'defaultMetaKeys' => $defaultMetaKeys,
+            'headerPages' => $headerPages,
+            'footerPages' => $footerPages,
+            'headerMenuTree' => $headerMenuTree,
+            'topPhone' => $companyPhone,
+            'topEmail' => $companyEmail,
+            'ctaLabel' => $appLocale === 'en' ? 'Get a Quote' : 'اطلب عرض سعر',
+            'ctaUrl' => route('website.contact', ['lang' => $appLocale]),
+            'socialLinks' => $socialLinks,
+            'hasSocial' => $hasSocial,
+            'switchToArUrl' => $switchToArUrl,
+            'switchToEnUrl' => $switchToEnUrl,
+            'heroSlider' => $heroSlider,
         ]);
     }
 }

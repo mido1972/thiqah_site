@@ -7,7 +7,7 @@
     $slides = $slider?->slides?->where('is_active', true)->values() ?? collect();
 @endphp
 
-<section class="hero-section style-6 mx-30 nhb-br-0 lg-mx-0 mt-30 lg-mt-0">
+<section class="hero-section style-6 mx-30 nhb-br-0 lg-mx-0">
     <div class="bg image"><img src="{{ asset('assets/images/banner/hm6-bg01.jpg') }}" alt=""></div>
     <div class="hero-scroll smooth">
         <a href="#about-section" id="scrollLink">
@@ -28,9 +28,9 @@
                 @endphp
                 <div class="swiper-slide">
                     <div class="container">
-                        <div class="row align-items-center">
+                        <div class="row align-items-center thiqah-preserve-layout">
                             <div class="col-lg-7">
-                                <div class="hero-content md-mb-50">
+                                <div class="hero-content md-mb-50 {{ $locale === 'ar' ? 'text-end' : '' }}">
                                     <h1 class="title">{!! nl2br(e($title ?: ($locale === 'en' ? 'Integrated Software For Modern Operations' : 'حلول برمجية متكاملة لإدارة أعمالك'))) !!}</h1>
                                     <div class="text">
                                         <div class="icon spin"><img src="{{ asset('assets/images/shapes/star3.png') }}" alt=""></div>
@@ -53,9 +53,9 @@
             @empty
                 <div class="swiper-slide">
                     <div class="container">
-                        <div class="row align-items-center">
+                        <div class="row align-items-center thiqah-preserve-layout">
                             <div class="col-lg-7">
-                                <div class="hero-content md-mb-50">
+                                <div class="hero-content md-mb-50 {{ $locale === 'ar' ? 'text-end' : '' }}">
                                     <h1 class="title">{{ $locale === 'en' ? 'ERP, HR and Contracting Solutions' : 'حلول ERP والموارد البشرية والمقاولات' }}</h1>
                                     <div class="text"><div class="icon spin"><img src="{{ asset('assets/images/shapes/star3.png') }}" alt=""></div><p>{{ $locale === 'en' ? 'Professional systems that organize operations, improve visibility and support growth.' : 'أنظمة احترافية لتنظيم التشغيل ورفع كفاءة الأداء ودعم التوسع.' }}</p></div>
                                     <a href="{{ route('website.contact', ['lang' => $locale]) }}" class="theme-btn bg-color10"><span class="link-effect"><span class="effect-1">{{ $locale === 'en' ? 'Free Consultation' : 'استشارة مجانية' }}</span><span class="effect-1">{{ $locale === 'en' ? 'Free Consultation' : 'استشارة مجانية' }}</span></span><i class="fa-regular fa-arrow-right-long"></i></a>

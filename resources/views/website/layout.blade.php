@@ -97,6 +97,9 @@
         body * {
             font-family: {{ $isRtl ? "'Cairo', sans-serif" : "'Inter', sans-serif" }};
         }
+        body {
+            text-align: {{ $isRtl ? 'right' : 'left' }};
+        }
         .rtl-fix .title-area,
         .rtl-fix .hero-content,
         .rtl-fix .about-content-wrapper,
@@ -114,6 +117,120 @@
         .rtl-fix .contact-option,
         .rtl-fix .social-option {
             direction: rtl;
+        }
+        .thiqah-preserve-layout,
+        .thiqah-preserve-layout.row,
+        .thiqah-site-header .menu-area > .row,
+        .hero-slider-6 .swiper-slide .thiqah-preserve-layout {
+            direction: ltr;
+        }
+        .rtl-fix .thiqah-site-header .main-menu,
+        .rtl-fix .thiqah-site-header .main-menu a,
+        .rtl-fix .thiqah-site-header .header-logo,
+        .rtl-fix .hero-slider-6 .hero-content,
+        .rtl-fix .hero-slider-6 .hero-scroll,
+        .rtl-fix .footer-section .footer-widget,
+        .rtl-fix .footer-section .brand-header,
+        .rtl-fix .footer-section .newsletter {
+            direction: rtl;
+        }
+        .thiqah-site-header .main-menu ul.sub-menu {
+            text-align: {{ $isRtl ? 'right' : 'left' }};
+        }
+        .rtl-fix .thiqah-site-header .main-menu > ul {
+            flex-direction: row;
+        }
+        .rtl-fix .thiqah-site-header .main-menu > ul > li.menu-item-has-children > a {
+            padding-right: 18px;
+            padding-left: 0;
+        }
+        .rtl-fix .thiqah-site-header .main-menu > ul > li.menu-item-has-children > a::before {
+            right: 0;
+            left: auto;
+        }
+        .rtl-fix .thiqah-site-header .main-menu ul.sub-menu {
+            left: 0;
+            right: auto;
+        }
+        .rtl-fix .thiqah-site-header .main-menu ul.sub-menu li ul.sub-menu {
+            left: 100%;
+            right: auto;
+            margin-left: 15px;
+            margin-right: 0;
+        }
+        .thiqah-site-header .lang-switcher,
+        .thiqah-site-header .mobile-lang-switcher {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .thiqah-site-header {
+            top: 0;
+        }
+        .thiqah-site-header .header-right-wrapper .lang-switcher {
+            display: none;
+        }
+        .thiqah-site-header .header-right {
+            direction: ltr;
+        }
+        .thiqah-site-header .header-logo a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-start;
+            width: 140px;
+            height: 40px;
+            overflow: hidden;
+        }
+        .thiqah-site-header .header-logo a img {
+            display: block;
+            max-width: 140px;
+            max-height: 40px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+        .thiqah-site-header .lang-switcher {
+            direction: ltr;
+        }
+        .thiqah-site-header .lang-switcher a,
+        .thiqah-site-header .mobile-lang-switcher a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 42px;
+            height: 42px;
+            padding: 0 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            color: rgba(255,255,255,.85);
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.1);
+        }
+        .thiqah-site-header .lang-switcher a.active,
+        .thiqah-site-header .mobile-lang-switcher a.active {
+            color: #fff;
+            background: #e3572b;
+            border-color: #e3572b;
+        }
+        .thiqah-site-header .mobile-lang-switcher {
+            margin: 24px 0;
+            justify-content: {{ $isRtl ? 'flex-end' : 'flex-start' }};
+        }
+        .thiqah-site-header .main-wrapper .nav-menu {
+            margin-left: -25px;
+        }
+        .thiqah-site-header .main-menu > ul > li > a {
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .thiqah-site-header .header-right .theme-btn {
+            min-width: 200px;
+            padding: 13px 40px;
+            justify-content: center;
+            white-space: nowrap;
+            font-size: 16px;
         }
         .thiqah-section {
             padding: 120px 0;
@@ -219,30 +336,42 @@
             align-items: center;
             gap: 10px;
         }
-        .hero-slider-6 .hero-right,
-        .hero-slider-6 .col-lg-5,
-        .hero-slider-6 .hero-slide-image-box {
-            height: 100%;
-            min-height: 680px;
-        }
         .hero-slider-6 .swiper-slide .row {
             min-height: 680px;
         }
         .hero-slider-6 .hero-right {
+            min-height: 680px;
+            padding-left: 50px;
             display: flex;
-            align-items: stretch;
+            align-items: flex-end;
+            justify-content: flex-end;
         }
-        .hero-slider-6 .hero-slide-image-box img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center;
-            display: block;
+        .hero-slider-6 .hero-content {
+            text-align: {{ $isRtl ? 'right' : 'left' }};
         }
-        .hero-slider-6 .hero-slide-image-box {
-            width: 100%;
+        .hero-slider-6 .hero-content .text {
+            justify-content: {{ $isRtl ? 'flex-end' : 'flex-start' }};
+        }
+        .hero-slider-6 .hero-slide-image-box,
+        .hero-slider-6 .hero-right .image-box {
+            width: 645px;
+            max-width: 100%;
+            height: 720px;
+            margin-bottom: -124px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
             overflow: hidden;
-            border-radius: 24px;
+        }
+        .hero-slider-6 .hero-slide-image-box img,
+        .hero-slider-6 .hero-right .image-box img {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            object-position: bottom center;
+            display: block;
         }
         .hero-slider-6 .hero-content .title,
         .hero-slider-6 .hero-content p,
@@ -253,13 +382,22 @@
             .thiqah-section {
                 padding: 90px 0;
             }
-            .hero-slider-6 .hero-right,
-            .hero-slider-6 .col-lg-5,
-            .hero-slider-6 .hero-slide-image-box {
-                min-height: 460px;
+            .thiqah-site-header {
+                top: 0;
+            }
+            .thiqah-site-header .header-logo a {
+                width: 120px;
+                height: 34px;
+            }
+            .thiqah-site-header .header-logo a img {
+                max-width: 120px;
+                max-height: 34px;
             }
             .hero-slider-6 .swiper-slide .row {
                 min-height: 460px;
+            }
+            .hero-slider-6 .hero-right {
+                display: none;
             }
             .footer-section .footer-widget .title {
                 font-size: 24px;
@@ -278,10 +416,8 @@
                 padding: 24px;
                 border-radius: 20px;
             }
-            .hero-slider-6 .hero-right,
-            .hero-slider-6 .col-lg-5,
-            .hero-slider-6 .hero-slide-image-box {
-                min-height: 320px;
+            .thiqah-site-header .main-wrapper .nav-menu {
+                margin-left: 0;
             }
             .hero-slider-6 .swiper-slide .row {
                 min-height: 320px;
