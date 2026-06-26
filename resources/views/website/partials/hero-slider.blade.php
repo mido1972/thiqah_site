@@ -7,7 +7,7 @@
     $slides = $slider?->slides?->where('is_active', true)->values() ?? collect();
 @endphp
 
-<section class="hero-section style-6 mx-30 nhb-br-0 lg-mx-0">
+<section class="hero-section style-6 mx-30 nhb-br-0 lg-mx-0 mt-30 lg-mt-0">
     <div class="bg image"><img src="{{ asset('assets/images/banner/hm6-bg01.jpg') }}" alt=""></div>
     <div class="hero-scroll smooth">
         <a href="#about-section" id="scrollLink">
