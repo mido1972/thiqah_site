@@ -44,4 +44,15 @@
             </div>
         </div>
     </section>
+
+    <section class="cta-section style-4 bg-theme2 mx-30 lg-mx-0">
+        <div class="bg image mbm-color-dodge"><img src="{{ asset('assets/images/cta/hm6-bg01.png') }}" alt=""></div>
+        <div class="overlay"></div>
+        <div class="container py-75">
+            <div class="row gy-30 align-items-center">
+                <div class="col-lg-7"><div class="social-proof"><div class="icon"><i class="fa-solid fa-check"></i></div><p class="text">{{ $isEn ? 'Want this module running in your business?' : 'تريد تشغيل هذا النظام في شركتك؟' }}</p></div></div>
+                <div class="col-lg-5"><div class="cta-btn text-{{ $isEn ? 'right' : 'left' }} md-text-{{ $isEn ? 'left' : 'right' }}"><a href="{{ route('website.contact', ['lang' => $locale]) }}" class="theme-btn bg-dark"><span class="link-effect"><span class="effect-1">{{ $isEn ? 'Request a quote' : 'اطلب عرض سعر' }}</span><span class="effect-1">{{ $isEn ? 'Request a quote' : 'اطلب عرض سعر' }}</span></span><i class="fa-regular fa-arrow-right-long"></i></a></div></div>
+            </div>
+        </div>
+    </section>
 @endsection

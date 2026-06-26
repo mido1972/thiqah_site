@@ -121,12 +121,16 @@
         .thiqah-preserve-layout,
         .thiqah-preserve-layout.row,
         .thiqah-site-header .menu-area > .row,
+        .sticky-header .menu-area > .row,
         .hero-slider-6 .swiper-slide .thiqah-preserve-layout {
             direction: ltr;
         }
         .rtl-fix .thiqah-site-header .main-menu,
         .rtl-fix .thiqah-site-header .main-menu a,
         .rtl-fix .thiqah-site-header .header-logo,
+        .rtl-fix .sticky-header .main-menu,
+        .rtl-fix .sticky-header .main-menu a,
+        .rtl-fix .sticky-header .header-logo,
         .rtl-fix .hero-slider-6 .hero-content,
         .rtl-fix .hero-slider-6 .hero-scroll,
         .rtl-fix .footer-section .footer-widget,
@@ -134,7 +138,8 @@
         .rtl-fix .footer-section .newsletter {
             direction: rtl;
         }
-        .thiqah-site-header .main-menu ul.sub-menu {
+        .thiqah-site-header .main-menu ul.sub-menu,
+        .sticky-header .main-menu ul.sub-menu {
             text-align: {{ $isRtl ? 'right' : 'left' }};
         }
         .rtl-fix .thiqah-site-header .main-menu > ul {
@@ -153,6 +158,28 @@
             right: auto;
         }
         .rtl-fix .thiqah-site-header .main-menu ul.sub-menu li ul.sub-menu {
+            left: 100%;
+            right: auto;
+            margin-left: 15px;
+            margin-right: 0;
+        }
+        /* Sticky header menu RTL fixes */
+        .rtl-fix .sticky-header .main-menu > ul {
+            flex-direction: row;
+        }
+        .rtl-fix .sticky-header .main-menu > ul > li.menu-item-has-children > a {
+            padding-right: 18px;
+            padding-left: 0;
+        }
+        .rtl-fix .sticky-header .main-menu > ul > li.menu-item-has-children > a::before {
+            right: 0;
+            left: auto;
+        }
+        .rtl-fix .sticky-header .main-menu ul.sub-menu {
+            left: 0;
+            right: auto;
+        }
+        .rtl-fix .sticky-header .main-menu ul.sub-menu li ul.sub-menu {
             left: 100%;
             right: auto;
             margin-left: 15px;
@@ -182,6 +209,23 @@
             overflow: hidden;
         }
         .thiqah-site-header .header-logo a img {
+            display: block;
+            max-width: 140px;
+            max-height: 40px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+        /* Sticky header logo size fix */
+        .sticky-header .header-logo a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-start;
+            width: 140px;
+            height: 40px;
+            overflow: hidden;
+        }
+        .sticky-header .header-logo a img {
             display: block;
             max-width: 140px;
             max-height: 40px;
